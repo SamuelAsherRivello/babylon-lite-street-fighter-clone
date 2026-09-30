@@ -87,9 +87,7 @@ Node/npm/Vite baseline that may be retained or replaced deliberately.
 
 ## 5. Configure OpenSpec
 
-- [ ] Use the bundled `.agents/skills/openspec-*` files, generated with
-      OpenSpec 1.13.1. They are ready to use without regeneration during this
-      checklist; do not hand-edit generated skill files.
+- [ ] When an OpenSpec workflow is required, generate `.agents/skills/openspec-*` files in the resulting project using OpenSpec 1.13.1. This template preserves only `.openspec-target`; do not hand-edit generated skill files.
 - [ ] Verify `openspec --version` reports 1.13.1. If the CLI is missing or a
       different version, install `@fission-ai/openspec@1.13.1` following the
       [official installation guide](https://openspec.dev/docs/installation).
