@@ -6,7 +6,8 @@ A browser arcade fighter inspired by the original *Street Fighter II: The World 
 
 ## Live Demo
 
-- [Play Street Fighter II Clone](https://samuelasherrivello.github.io/babylon-lite-street-fighter-clone/)
+- [Play the latest public playtest (v0.0.5)](https://samuelasherrivello.github.io/babylon-lite-street-fighter-clone/)
+- [Release v0.0.5](https://github.com/SamuelAsherRivello/babylon-lite-street-fighter-clone/releases/tag/v0.0.5)
 
 ## Table of Contents
 
