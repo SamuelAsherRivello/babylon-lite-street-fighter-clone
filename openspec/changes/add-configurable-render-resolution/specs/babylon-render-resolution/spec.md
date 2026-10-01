@@ -2,7 +2,11 @@
 
 ## Purpose
 
+<<<<<<< Updated upstream
 Provides a runtime-selectable Babylon Lite render resolution independent of game logical coordinates. It keeps the same 2D world view while making resolution and nearest-neighbor presentation behavior visible and adjustable.
+=======
+Provides a runtime-selectable Babylon Lite render resolution that is independent of game logical coordinates. It keeps the same 2D world view while making resolution and nearest-neighbor presentation behavior visible and adjustable.
+>>>>>>> Stashed changes
 
 ## ADDED Requirements
 
@@ -14,12 +18,21 @@ Babylon Lite 2D content SHALL define a developer-editable logical resolution for
 - **THEN** the same logical scene and camera view are rendered at the newly selected internal target dimensions
 - **AND** game positions and visible world bounds remain unchanged
 
+<<<<<<< Updated upstream
 ### Requirement: Four native-relative render resolutions
 The Babylon Lite 2D integration SHALL offer four render-resolution presets: quarter-native, half-native, native, and double-native dimensions. The native dimensions SHALL be the current DPR-aware canvas backing dimensions. Each choice SHALL scale both axes by its stated factor while preserving aspect ratio, and its pixel dimensions SHALL be integral.
 
 #### Scenario: Resolution presets at a native backing size
 - **WHEN** the native backing is 1280 by 720 pixels
 - **THEN** the four target resolutions are 320 by 180, 640 by 360, 1280 by 720, and 2560 by 1440 pixels
+=======
+### Requirement: Three native-relative render resolutions
+The Babylon Lite 2D integration SHALL offer three render-resolution presets: half the native backing width and height, native backing dimensions, and double the native backing width and height. The native dimensions SHALL be the current DPR-aware canvas backing dimensions. The half and double choices SHALL scale both axes by the stated factor while preserving aspect ratio, and their pixel dimensions SHALL be integral.
+
+#### Scenario: Resolution presets at a native backing size
+- **WHEN** the native backing is 1280 by 720 pixels
+- **THEN** the three target resolutions are 640 by 360, 1280 by 720, and 2560 by 1440 pixels
+>>>>>>> Stashed changes
 
 #### Scenario: Resolution presets after resize or DPR change
 - **WHEN** the content viewport or device pixel ratio changes
@@ -38,7 +51,11 @@ The selected internal render target SHALL be presented into the native backing b
 - **THEN** its output is reduced into the native backing buffer with nearest-neighbor sampling and no blended edge colors
 
 ### Requirement: React-owned render-resolution control
+<<<<<<< Updated upstream
 The React HUD SHALL display a render-resolution control immediately below the Babylon Lite title. It SHALL show `(R) RenderResolution: <width>x<height>` using the active target dimensions and append `(Native)` when the native preset is selected. Clicking the `(R)` control or pressing R SHALL cycle through quarter-native, half-native, native, and double-native choices, wrapping to quarter-native after double-native. React SHALL own the selection, default it to Native, persist the selected preset in local storage, and pass the selected preset to Babylon Lite. The Babylon Lite settings dialog SHALL display the same active render-resolution value.
+=======
+The React HUD SHALL display a render-resolution control immediately below the Babylon Lite title. It SHALL show `(R) RenderResolution: <width>x<height>` using the active target dimensions and append `(Native)` when the native preset is selected. Clicking the `(R)` control or pressing R SHALL cycle through half-native, native, and double-native choices, wrapping to half-native after double-native. React SHALL own the selection, default it to Native, persist the selected preset in local storage, and pass the selected preset to Babylon Lite. The Babylon Lite settings dialog SHALL display the same active render-resolution value.
+>>>>>>> Stashed changes
 
 #### Scenario: Default and displayed selection
 - **WHEN** the application starts without a saved render-resolution preference
@@ -54,7 +71,11 @@ The React HUD SHALL display a render-resolution control immediately below the Ba
 - **THEN** React restores that preset and Babylon Lite recalculates its dimensions from the current native backing size
 
 ### Requirement: WebGPU render-target limits
+<<<<<<< Updated upstream
 Any upscaled render target SHALL be capped to the largest dimensions supported by the active WebGPU device when either scaled dimension exceeds its texture dimension limit. The cap SHALL preserve aspect ratio, the selected preset SHALL remain unchanged, and the HUD SHALL display the actual capped dimensions. Babylon Lite SHALL continue using WebGPU and SHALL NOT switch to another renderer.
+=======
+The double-native render target SHALL be capped to the largest dimensions supported by the active WebGPU device when either doubled dimension exceeds its texture dimension limit. The cap SHALL preserve aspect ratio, the selected preset SHALL remain double-native, and the HUD SHALL display the actual capped dimensions. Babylon Lite SHALL continue using WebGPU and SHALL NOT switch to another renderer.
+>>>>>>> Stashed changes
 
 #### Scenario: Double target exceeds device texture limit
 - **WHEN** twice the native width or height exceeds the active WebGPU device's supported texture dimensions
