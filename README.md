@@ -47,11 +47,11 @@ A round lasts 99 seconds. A knockout wins the round; when time expires, the figh
 | Move left/right | A / D | ← / → |
 | Jump / crouch | W / S | ↑ / ↓ |
 | Guard | Hold away from opponent | Hold away from opponent |
-| Light / medium / heavy punch | F / G / H | 1 / 2 / 3 |
-| Light / medium / heavy kick | T / Y / U | 4 / 5 / 6 |
+| Light / medium / heavy punch | Y / U / I | 1 / 2 / 3 |
+| Light / medium / heavy kick | J / K / L | 4 / 5 / 6 |
 | Pause local match | Pause button | Pause button |
 
-Direction for special moves is relative to the opponent. Back (away) also guards. Pressing any arrow key does not trigger a React shortcut.
+Direction for special moves is relative to the opponent. Back (away) also guards. Player 1's `WASD` and `YUI JKL` controls do not overlap the app's React shortcuts; Player 2 uses arrows and number keys.
 
 Use the menu's **Sound** control and volume slider for music and effects. Add `?mute=1` to the game URL to force fully silent mode for browser automation and playtesting; the sound control remains disabled in that mode.
 

@@ -11,7 +11,7 @@ const serverUrl = import.meta.env.VITE_MULTIPLAYER_SERVER_URL || "https://rmc-co
 const muteFromUrl = new URLSearchParams(location.search).get("mute") === "1";
 
 const keys = new Set();
-const P1 = { left: "a", right: "d", up: "w", down: "s", punch: ["f", "g", "h"], kick: ["t", "y", "u"] };
+const P1 = { left: "a", right: "d", up: "w", down: "s", punch: ["y", "u", "i"], kick: ["j", "k", "l"] };
 const P2 = { left: "ArrowLeft", right: "ArrowRight", up: "ArrowUp", down: "ArrowDown", punch: ["1", "2", "3"], kick: ["4", "5", "6"] };
 
 function readInput(map, facing) {
@@ -246,8 +246,8 @@ export function FightGame() {
       {playing && shown.phase === "fight" && (screen === "onlineFight" || shown.eventUntil > shown.elapsed) && shown.event && <div className="impact-text">{shown.event}</div>}
       {(!playing || shown.phase !== "fight" || (screen === "fight" && shown.paused) || (screen === "onlineFight" && (onlinePaused || onlineState.status === "reconnecting"))) && <div className="game-overlay">{overlay()}</div>}
     </section>
-    <footer className="fight-controls"><div><b>{screen === "onlineFight" ? "YOU" : "P1"}</b> A / D Move · W Jump · S Crouch · F/G/H Punch · T/Y/U Kick · Back Guard</div><button onClick={() => screen === "onlineFight" ? setOnlinePaused((paused) => !paused) : togglePause()}>{screen === "onlineFight" ? onlinePaused ? "RESUME" : "PAUSE" : shown.paused ? "RESUME" : "PAUSE"}</button><div>{screen === "onlineFight" ? "Opponent uses their own controls" : <><b>P2</b> ← / → Move · ↑ Jump · ↓ Crouch · 1/2/3 Punch · 4/5/6 Kick</>}</div></footer>
+    <footer className="fight-controls"><div><b>{screen === "onlineFight" ? "YOU" : "P1"}</b> A / D Move · W Jump · S Crouch · Y/U/I Punch · J/K/L Kick · Back Guard</div><button onClick={() => screen === "onlineFight" ? setOnlinePaused((paused) => !paused) : togglePause()}>{screen === "onlineFight" ? onlinePaused ? "RESUME" : "PAUSE" : shown.paused ? "RESUME" : "PAUSE"}</button><div>{screen === "onlineFight" ? "Opponent uses their own controls" : <><b>P2</b> ← / → Move · ↑ Jump · ↓ Crouch · 1/2/3 Punch · 4/5/6 Kick</>}</div></footer>
     <aside className="move-list"><span>RYU: ↓↘→ + P HADOUKEN · →↓↘ + P SHORYUKEN · ↓↙← + K TATSUMAKI</span><span>CHUN-LI: RAPID K HYAKURETSUKYAKU · ↓↑ + K SPINNING BIRD · →→ + K LIGHTNING STEP</span><span>KAIDA: ↓↘→ + P CINDER ARC · →↓↘ + K COMET HEEL · ←→ + P ASHEN COUNTER</span></aside>
-    <div className="touch-controls"><div className="touch-pad"><button data-key="a">◀</button><button data-key="w">▲</button><button data-key="s">▼</button><button data-key="d">▶</button></div><div className="touch-attacks">{["f","g","h","t","y","u"].map((key,i)=><button key={key} data-key={key}>{["LP","MP","HP","LK","MK","HK"][i]}</button>)}</div></div>
+    <div className="touch-controls"><div className="touch-pad"><button data-key="a">◀</button><button data-key="w">▲</button><button data-key="s">▼</button><button data-key="d">▶</button></div><div className="touch-attacks">{[...P1.punch, ...P1.kick].map((key,i)=><button key={key} data-key={key}>{["LP","MP","HP","LK","MK","HK"][i]}</button>)}</div></div>
   </main>;
 }
