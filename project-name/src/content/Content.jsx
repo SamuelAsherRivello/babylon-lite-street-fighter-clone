@@ -3,8 +3,9 @@ import {
   addSpriteAnimation,
   addSprite2D,
   attachSpriteAnimationsToRenderer,
+  centerSprite2DView,
+  createRenderTexture2D,
   createGridSpriteAtlas,
-  createSpriteAtlasFromFrames,
   createSprite2DLayer,
   createSpriteAnimationManager,
   createSpriteFrameAnimation,
@@ -17,45 +18,39 @@ import {
   loadTexture2D,
   registerSpriteRenderer,
   releaseTexture,
+  setSpriteRendererTarget,
   startEngine,
   stopEngine,
   updateSprite2D,
 } from "@babylonjs/lite";
 import tileUrl from "./babylon/images/concentric-squares-32.png?url";
-import { contentConfig, getRenderingPolicy, pixelPerfectOptions, showcaseTileSize } from "./babylon/config.js";
+import { contentConfig, getRenderingPolicy, logicalResolution, pixelPerfectOptions, showcaseTileSize } from "./babylon/config.js";
 import { getInitializationMessage } from "./babylon/initialization.js";
-import { getShowcaseSpriteLayout } from "./babylon/pixel-perfect.js";
-import { getWorldEdgeBorderLayout } from "./babylon/showcase-overlay.js";
+import { getLogicalToRenderScale } from "./babylon/pixel-perfect.js";
+import { createRenderTargetSurfaceView, getRenderResolutionDimensions } from "./babylon/render-resolution.js";
 import { useViewportInfo } from "../ui/ViewportInfoContext.jsx";
 
 const TAU = Math.PI * 2;
 const ROTATION_STEPS = 628;
 const ROTATION_STEP_MS = 50;
 const BACKGROUND = Object.freeze({ r: 1, g: 1, b: 1, a: 1 });
-// Match the React label's #e0694b on the canvas using Babylon Lite's sprite tint.
-const EDGE_ACCENT = [224 / 255, 105 / 255, 75 / 255, 1];
-
-function createSolidPixelFrame() {
-  return {
-    name: "solid",
-    width: 1,
-    height: 1,
-    pixels: new Uint8Array([255, 255, 255, 255]),
-    pivot: [0.5, 0.5],
-  };
-}
 
 function PixelPerfectShowcase() {
-  const { setScale, sceneBorderVisible, processingPaused } = useViewportInfo();
+  const { setScale, renderPreset, setRenderResolutionInfo, sceneBorderVisible, processingPaused } = useViewportInfo();
   const hostRef = useRef(null);
   const canvasRef = useRef(null);
-  const borderSpritesRef = useRef([]);
-  const sceneBorderVisibleRef = useRef(sceneBorderVisible);
   const processingPausedRef = useRef(processingPaused);
+  const renderPresetRef = useRef(renderPreset);
+  const applyRenderResolutionRef = useRef(null);
   const engineRef = useRef(null);
   const engineReadyRef = useRef(false);
   const engineRunningRef = useRef(false);
   const [message, setMessage] = useState("Starting Babylon Lite…");
+
+  useEffect(() => {
+    renderPresetRef.current = renderPreset;
+    applyRenderResolutionRef.current?.();
+  }, [renderPreset]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -64,11 +59,15 @@ function PixelPerfectShowcase() {
     let disposed = false;
     let engine = null;
     let texture = null;
-    let overlayAtlas = null;
+    let atlas = null;
+    let renderTexture = null;
+    let presentationAtlas = null;
+    let presentationRenderer = null;
+    let presentationSprite = null;
+    let renderSurface = null;
     let renderer = null;
+    let layer = null;
     let sprite = null;
-    let overlayLayer = null;
-    let borderSprites = [];
     let resizeObserver = null;
     let dprQuery = null;
     let animationBinding = null;
@@ -84,35 +83,116 @@ function PixelPerfectShowcase() {
       dprQuery = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
       dprQuery.addEventListener("change", handleDprChange, { once: true });
     };
-    const updateSpriteLayout = () => {
-      if (!sprite || !host) return;
+    const updateRenderResolution = () => {
+      if (!engine || !renderer || !host || !canvas || !sprite) return;
       const dpr = window.devicePixelRatio || 1;
-      const layout = getShowcaseSpriteLayout(host.clientWidth, host.clientHeight, dpr);
-      setScale(layout.scale);
-      updateSprite2D(sprite, { positionPx: layout.positionPx, sizePx: layout.sizePx });
-      const edgeLayout = getWorldEdgeBorderLayout(host.clientWidth, host.clientHeight, dpr);
-      borderSprites.forEach((border, index) => updateSprite2D(border, {
-        ...edgeLayout[index],
-        visible: sceneBorderVisibleRef.current,
-      }));
+      const nativeWidth = Math.max(1, Math.floor(host.clientWidth * dpr));
+      const nativeHeight = Math.max(1, Math.floor(host.clientHeight * dpr));
+      const resolved = getRenderResolutionDimensions(
+        nativeWidth,
+        nativeHeight,
+        renderPresetRef.current,
+        engine._device.limits.maxTextureDimension2D,
+      );
+      if (renderSurface) {
+        renderSurface.canvas.width = resolved.width;
+        renderSurface.canvas.height = resolved.height;
+      }
+      const sameTarget = renderTexture
+        && renderTexture.width === resolved.width
+        && renderTexture.height === resolved.height;
+
+      if (!sameTarget) {
+        if (renderer) setSpriteRendererTarget(renderer, null);
+        if (presentationRenderer) disposeSpriteRenderer(presentationRenderer);
+        if (presentationAtlas) disposeSpriteAtlas(presentationAtlas);
+        if (renderTexture) releaseTexture(renderTexture);
+        presentationRenderer = null;
+        presentationAtlas = null;
+        presentationSprite = null;
+        renderTexture = createRenderTexture2D(engine, resolved.width, resolved.height, {
+          addressModeU: "clamp-to-edge",
+          addressModeV: "clamp-to-edge",
+          minFilter: "nearest",
+          magFilter: "nearest",
+        });
+        setSpriteRendererTarget(renderer, renderTexture);
+        presentationAtlas = createGridSpriteAtlas(renderTexture, {
+          cellWidthPx: resolved.width,
+          cellHeightPx: resolved.height,
+          columns: 1,
+          rows: 1,
+          pivot: [0.5, 0.5],
+        });
+        const presentationLayer = createSprite2DLayer(presentationAtlas, { pivot: [0.5, 0.5] });
+        presentationSprite = addSprite2D(presentationLayer, {
+          positionPx: [nativeWidth / 2, nativeHeight / 2],
+          sizePx: [nativeWidth, nativeHeight],
+          frame: 0,
+        });
+        presentationRenderer = createSpriteRenderer(engine, {
+          layers: [presentationLayer],
+          clear: true,
+          clearValue: BACKGROUND,
+        });
+        registerSpriteRenderer(presentationRenderer);
+      } else if (presentationSprite) {
+        updateSprite2D(presentationSprite, {
+          positionPx: [nativeWidth / 2, nativeHeight / 2],
+          sizePx: [nativeWidth, nativeHeight],
+        });
+      }
+
+      // The sprite stays at world origin (0, 0). Treat the Sprite2D layer view as
+      // the 2D camera: keep its focus at origin and scale the same logical bounds
+      // into each target size. Resolution changes therefore alter raster size,
+      // not the title's world position or camera framing.
+      layer.view.zoom = getLogicalToRenderScale(resolved.width, resolved.height, logicalResolution);
+      centerSprite2DView(layer.view, 0, 0, resolved.width, resolved.height);
+      setScale(resolved.scale);
+      setRenderResolutionInfo({
+        preset: resolved.preset,
+        width: resolved.width,
+        height: resolved.height,
+        nativeWidth,
+        nativeHeight,
+      });
+    };
+    const updateRenderResolutionSafely = () => {
+      try {
+        updateRenderResolution();
+      } catch (error) {
+        failed = true;
+        console.error("Babylon Lite render-resolution update failed:", error);
+        if (engineRunningRef.current && engine) stopEngine(engine);
+        engineRunningRef.current = false;
+        disposeResources();
+        if (!cancelled) setMessage(getInitializationMessage(Boolean(navigator.gpu), error));
+      }
     };
     function handleDprChange() {
-      updateSpriteLayout();
+      updateRenderResolutionSafely();
       observeDpr();
     }
     const disposeResources = () => {
       if (disposed || !setupFinished) return;
       disposed = true;
       animationBinding && disposeSpriteAnimationBinding(animationBinding);
+      if (renderer) setSpriteRendererTarget(renderer, null);
+      if (presentationRenderer) disposeSpriteRenderer(presentationRenderer);
       if (renderer) disposeSpriteRenderer(renderer);
-      if (overlayAtlas) disposeSpriteAtlas(overlayAtlas);
+      if (presentationAtlas) disposeSpriteAtlas(presentationAtlas);
+      if (atlas) disposeSpriteAtlas(atlas);
+      if (renderTexture) releaseTexture(renderTexture);
       if (texture) releaseTexture(texture);
       if (engine) disposeEngine(engine);
       animationBinding = null;
+      presentationRenderer = null;
       renderer = null;
-      borderSprites = [];
-      borderSpritesRef.current = [];
-      overlayAtlas = null;
+      presentationAtlas = null;
+      atlas = null;
+      renderTexture = null;
+      renderSurface = null;
       texture = null;
       engine = null;
       engineRef.current = null;
@@ -143,36 +223,36 @@ function PixelPerfectShowcase() {
         }
         texture = loadedTexture;
 
-        const atlas = createGridSpriteAtlas(texture, {
+        atlas = createGridSpriteAtlas(texture, {
           cellWidthPx: showcaseTileSize,
           cellHeightPx: showcaseTileSize,
           columns: 1,
           rows: 1,
           pivot: [0.5, 0.5],
         });
-        const layer = createSprite2DLayer(atlas, { pivot: [0.5, 0.5] });
+        layer = createSprite2DLayer(atlas, { pivot: [0.5, 0.5] });
         sprite = addSprite2D(layer, {
           positionPx: [0, 0],
           sizePx: [showcaseTileSize, showcaseTileSize],
           frame: 0,
         });
 
-        overlayAtlas = createSpriteAtlasFromFrames(engine, [createSolidPixelFrame()], { sampling: "nearest", srgb: true });
-        overlayLayer = createSprite2DLayer(overlayAtlas, { order: 1, pivot: [0.5, 0.5] });
-        borderSprites = Array.from({ length: 4 }, () => addSprite2D(overlayLayer, {
-          positionPx: [0, 0],
-          sizePx: [1, 1],
-          frame: 0,
-          color: EDGE_ACCENT,
-          visible: false,
-        }));
-        borderSpritesRef.current = borderSprites;
-
-        renderer = createSpriteRenderer(engine, {
-          layers: [layer, overlayLayer],
+        const dpr = window.devicePixelRatio || 1;
+        const initialWidth = Math.max(1, Math.floor(host.clientWidth * dpr));
+        const initialHeight = Math.max(1, Math.floor(host.clientHeight * dpr));
+        const initialRenderSize = getRenderResolutionDimensions(
+          initialWidth,
+          initialHeight,
+          renderPresetRef.current,
+          engine._device.limits.maxTextureDimension2D,
+        );
+        renderSurface = createRenderTargetSurfaceView(engine, initialRenderSize.width, initialRenderSize.height);
+        renderer = createSpriteRenderer(renderSurface, {
+          layers: [layer],
           clear: true,
           clearValue: BACKGROUND,
         });
+        setSpriteRendererTarget(renderer, null);
         registerSpriteRenderer(renderer);
 
         const animationManager = createSpriteAnimationManager();
@@ -183,19 +263,21 @@ function PixelPerfectShowcase() {
         }, 0, ROTATION_STEPS - 1, true, ROTATION_STEP_MS));
         animationBinding = attachSpriteAnimationsToRenderer(renderer, animationManager);
 
-        resizeObserver = new ResizeObserver(updateSpriteLayout);
-        resizeObserver.observe(host);
-        window.addEventListener("resize", updateSpriteLayout);
-        observeDpr();
-        updateSpriteLayout();
+        applyRenderResolutionRef.current = updateRenderResolutionSafely;
+        updateRenderResolution();
 
         await startEngine(engine);
+        if (failed) throw new Error("Babylon Lite render-resolution setup failed.");
         engineReadyRef.current = true;
         engineRunningRef.current = true;
         if (processingPausedRef.current) {
           stopEngine(engine);
           engineRunningRef.current = false;
         }
+        resizeObserver = new ResizeObserver(updateRenderResolutionSafely);
+        resizeObserver.observe(host);
+        window.addEventListener("resize", updateRenderResolutionSafely);
+        observeDpr();
         if (!cancelled) setMessage("");
       } catch (error) {
         failed = true;
@@ -211,16 +293,12 @@ function PixelPerfectShowcase() {
     return () => {
       cancelled = true;
       resizeObserver?.disconnect();
-      window.removeEventListener("resize", updateSpriteLayout);
+      window.removeEventListener("resize", updateRenderResolutionSafely);
       removeDprQuery();
+      applyRenderResolutionRef.current = null;
       disposeResources();
     };
   }, []);
-
-  useEffect(() => {
-    sceneBorderVisibleRef.current = sceneBorderVisible;
-    borderSpritesRef.current.forEach((border) => updateSprite2D(border, { visible: sceneBorderVisible }));
-  }, [sceneBorderVisible]);
 
   useEffect(() => {
     processingPausedRef.current = processingPaused;
@@ -239,6 +317,7 @@ function PixelPerfectShowcase() {
   return (
     <div ref={hostRef} className="babylon_content" data-renderer="babylon-lite" data-content-style="2d">
       <canvas ref={canvasRef} className="babylon_canvas" aria-hidden="true" />
+      {sceneBorderVisible && <div className="babylon_scene_border" aria-hidden="true" />}
       {message && <div className="babylon_content_message" role="status">{message}</div>}
     </div>
   );

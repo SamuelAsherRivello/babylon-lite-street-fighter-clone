@@ -2,10 +2,15 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { inflateSync } from 'node:zlib';
 import test from 'node:test';
-import { contentConfig, getRenderingPolicy, logicalResolution, pixelPerfectOptions } from '../src/content/babylon/config.js';
+import { contentConfig, getRenderingPolicy, pixelPerfectOptions } from '../src/content/babylon/config.js';
 import { getInitializationMessage } from '../src/content/babylon/initialization.js';
-import { getLogicalToCssScale, getShowcaseSpriteLayout } from '../src/content/babylon/pixel-perfect.js';
-import { getScaleDisplayText, getWorldEdgeBorderLayout } from '../src/content/babylon/showcase-overlay.js';
+import { getLogicalToRenderScale } from '../src/content/babylon/pixel-perfect.js';
+import { getRenderScaleDisplayText } from '../src/content/babylon/showcase-overlay.js';
+import {
+  createRenderTargetSurfaceView,
+  cycleRenderResolutionPreset,
+  getRenderResolutionDimensions,
+} from '../src/content/babylon/render-resolution.js';
 
 test('defaults to Babylon Lite 2D and does not apply the pixel preset to 3D', () => {
   assert.deepEqual(contentConfig, { renderer: 'babylon-lite', style: '2d' });
@@ -22,38 +27,74 @@ test('defaults to Babylon Lite 2D and does not apply the pixel preset to 3D', ()
   });
 });
 
-test('uses integer logical-to-CSS scale when it fits and a positive fractional fallback below 1x', () => {
-  assert.equal(getLogicalToCssScale(1280, 720), 4);
-  assert.equal(getLogicalToCssScale(1000, 700), 3);
-  assert.equal(getLogicalToCssScale(160, 90), 0.5);
-  assert.equal(getLogicalToCssScale(0, 90), 0);
-  assert.equal(getLogicalToCssScale(320, 180, { width: 0, height: 180 }), 0);
-});
-
-test('maps the centered showcase sprite to Lite backing-store pixels once for DPR', () => {
-  assert.deepEqual(getShowcaseSpriteLayout(1280, 720, 2), {
-    scale: 4,
-    positionPx: [1280, 720],
-    sizePx: [32, 32],
+test('derives four relative render resolutions from native backing dimensions and caps double by the WebGPU limit', () => {
+  assert.deepEqual(getRenderResolutionDimensions(1280, 720, 'quarter'), {
+    preset: 'quarter', width: 320, height: 180, scale: 0.25,
   });
-  const fractionalDpr = getShowcaseSpriteLayout(160, 90, 1.25);
-  assert.equal(fractionalDpr.scale, 0.5);
-  assert.deepEqual(fractionalDpr.positionPx, [100, 56]);
-  assert.deepEqual(fractionalDpr.sizePx, [32, 32]);
-  assert.equal(logicalResolution.width / logicalResolution.height, 16 / 9);
+  assert.deepEqual(getRenderResolutionDimensions(1280, 720, 'half'), {
+    preset: 'half', width: 640, height: 360, scale: 0.5,
+  });
+  assert.deepEqual(getRenderResolutionDimensions(1280, 720, 'native'), {
+    preset: 'native', width: 1280, height: 720, scale: 1,
+  });
+  assert.deepEqual(getRenderResolutionDimensions(1280, 720, 'double'), {
+    preset: 'double', width: 2560, height: 1440, scale: 2,
+  });
+  assert.deepEqual(getRenderResolutionDimensions(10000, 5000, 'double', 8192), {
+    preset: 'double', width: 8192, height: 4096, scale: 0.8192,
+  });
+  const oddHalf = getRenderResolutionDimensions(923, 520, 'half');
+  assert.deepEqual([oddHalf.preset, oddHalf.width, oddHalf.height], ['half', 461, 260]);
+  assert.ok(Math.abs(oddHalf.scale - 0.5) < 0.001);
+  assert.deepEqual(getRenderResolutionDimensions(0, 520, 'double'), {
+    preset: 'double', width: 0, height: 0, scale: 0,
+  });
+  assert.deepEqual([
+    'quarter', 'half', 'native', 'double',
+    cycleRenderResolutionPreset('double'), cycleRenderResolutionPreset('invalid'),
+  ], [
+    'quarter', 'half', 'native', 'double', 'quarter', 'double',
+  ]);
 });
 
-test('formats the requested React viewport label and lays out a DPR-aware Babylon edge border', () => {
-  assert.equal(getScaleDisplayText(2), 'Scale: 2x Integer');
-  assert.equal(getScaleDisplayText(4), 'Scale: 4x Integer');
-  assert.equal(getScaleDisplayText(0.5), 'Scale: 0.5x Fractional');
+test('keeps the logical camera focus and spinning title at world origin across target sizes', async () => {
+  assert.equal(getLogicalToRenderScale(160, 90), 0.5);
+  assert.equal(getLogicalToRenderScale(320, 180), 1);
+  assert.equal(getLogicalToRenderScale(640, 360), 2);
 
-  const edges = getWorldEdgeBorderLayout(739, 416, 2.25);
-  assert.equal(edges.length, 4);
-  assert.deepEqual(edges[0], { positionPx: [831, 5.625], sizePx: [1662, 11.25] });
-  assert.deepEqual(edges[1], { positionPx: [831, 930.375], sizePx: [1662, 11.25] });
-  assert.deepEqual(edges[2], { positionPx: [5.625, 468], sizePx: [11.25, 936] });
-  assert.deepEqual(edges[3], { positionPx: [1656.375, 468], sizePx: [11.25, 936] });
+  const content = await readFile(new URL('../src/content/Content.jsx', import.meta.url), 'utf8');
+  assert.match(content, /positionPx: \[0, 0\]/);
+  assert.match(content, /centerSprite2DView\(layer\.view, 0, 0, resolved\.width, resolved\.height\)/);
+  assert.match(content, /layer\.view\.zoom = getLogicalToRenderScale/);
+  assert.match(content, /setScale\(resolved\.scale\)/);
+});
+
+test('adapts Babylon Lite sprite projection dimensions while sharing the engine surface registry', () => {
+  const contexts = [];
+  const engine = {
+    engine: null,
+    canvas: { width: 1280, height: 720 },
+    _renderingContexts: contexts,
+    format: 'bgra8unorm',
+  };
+  engine.engine = engine;
+  const targetSurface = createRenderTargetSurfaceView(engine, 640, 360);
+
+  assert.equal(targetSurface.engine, engine);
+  assert.equal(targetSurface._renderingContexts, contexts);
+  assert.equal(targetSurface.format, engine.format);
+  assert.deepEqual([targetSurface.canvas.width, targetSurface.canvas.height], [640, 360]);
+  targetSurface.canvas.width = 800;
+  assert.deepEqual([targetSurface.canvas.width, targetSurface.canvas.height], [800, 360]);
+  assert.deepEqual([engine.canvas.width, engine.canvas.height], [1280, 720]);
+});
+
+test('formats the active internal render scale independently of the CSS viewport', () => {
+  assert.equal(getRenderScaleDisplayText(1), 'Render Scale: 1x');
+  assert.equal(getRenderScaleDisplayText(0.5), 'Render Scale: 0.5x');
+  assert.equal(getRenderScaleDisplayText(2), 'Render Scale: 2x');
+  assert.equal(getRenderScaleDisplayText(0.8192), 'Render Scale: 0.82x');
+
 });
 
 test('uses the requested corner title/body styles and ties the Lite border to the React dialog', async () => {
@@ -65,7 +106,15 @@ test('uses the requested corner title/body styles and ties the Lite border to th
 
   assert.match(app, /className="corner-title">/);
   assert.match(app, /aria-label="Open Babylon Lite settings">\(B\)<\/button> Babylon Lite/);
-  assert.match(app, /className="corner-body">\{getScaleDisplayText/);
+  assert.match(app, /RenderResolution: \$\{renderResolutionInfo\.width\}x\$\{renderResolutionInfo\.height\}/);
+  assert.match(app, /renderPreset: "native"/);
+  assert.match(app, /isRenderResolutionPreset\(saved\?\.renderPreset\)/);
+  assert.match(app, /localStorage\.setItem\(configStorageKey, JSON\.stringify\(config\)\)/);
+  assert.match(app, /key === "r" && !event\.repeat/);
+  assert.match(app, /className="corner-body"><button className="babylon_viewport_info_button"/);
+  assert.match(app, /onClick=\{\(\) => setConfig\(\(current\) => \(\{ \.\.\.current, renderPreset: cycleRenderResolutionPreset/);
+  assert.match(app, /activeDialog === "babylon" \? <div className="dialog_options babylon_settings"><div>Babylon Lite<\/div><div>\{renderResolutionText\}<\/div>/);
+  assert.match(app, /className="corner-body">\{getRenderScaleDisplayText/);
   assert.match(app, /Mode: 2DPixelPerfect/);
   assert.match(app, /key === "b"/);
   assert.match(app, /event\.key === "Escape"/);
@@ -76,13 +125,11 @@ test('uses the requested corner title/body styles and ties the Lite border to th
   assert.match(styles, /left: 50%/);
   assert.match(styles, /bottom: 9px/);
   assert.match(styles, /transform: translateX\(-50%\)/);
-  assert.match(styles, /text-align: left/);
+  assert.match(styles, /text-align: center/);
   assert.match(styles, /color: #e0694b/);
-  assert.match(styles, /\.babylon_settings_dialog \.dialog_header h2,\s*\.babylon_settings_dialog \.dialog_close \{\s*color: #e0694b/);
   assert.match(styles, /\.babylon_viewport_info \.corner-title,\s*\.babylon_viewport_info \.corner-body \{\s*color: inherit/);
-  assert.match(content, /visible: sceneBorderVisibleRef\.current/);
-  assert.match(content, /const EDGE_ACCENT = \[224 \/ 255, 105 \/ 255, 75 \/ 255, 1\]/);
-  assert.match(content, /borderSpritesRef\.current\.forEach\(\(border\) => updateSprite2D\(border, \{ visible: sceneBorderVisible \}\)\)/);
+  assert.match(content, /sceneBorderVisible && <div className="babylon_scene_border"/);
+  assert.match(styles, /\.babylon_scene_border[\s\S]*border: 5px solid orange/);
 });
 
 test('produces a clear WebGPU fallback and uses the engine-owned frame lifecycle', async () => {
@@ -102,16 +149,12 @@ test('produces a clear WebGPU fallback and uses the engine-owned frame lifecycle
     /window\.removeEventListener\("resize"/,
     /removeDprQuery\(\)/,
     /disposeSpriteRenderer\(renderer\)/,
-    /disposeSpriteAtlas\(overlayAtlas\)/,
     /releaseTexture\(texture\)/,
     /disposeEngine\(engine\)/,
     /disposeSpriteAnimationBinding\(animationBinding\)/,
   ]) assert.match(content, expression);
   assert.match(content, /await createEngine\(canvas, pixelPerfectOptions\.engine\)/);
   assert.match(content, /await startEngine\(engine\)/);
-  assert.match(content, /createSpriteAtlasFromFrames\(engine/);
-  assert.match(content, /sceneBorderVisibleRef\.current/);
-  assert.match(content, /getWorldEdgeBorderLayout\(/);
 });
 
 test('imports an original 32x32 hard-edged PNG with only black and gray pixels', async () => {

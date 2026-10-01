@@ -57,6 +57,15 @@ body {
   image-rendering: pixelated;
 }
 
+.babylon_scene_border {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  box-sizing: border-box;
+  border: 5px solid orange;
+  pointer-events: none;
+}
+
 .babylon_content_message {
   display: grid;
   place-items: center;
@@ -149,19 +158,30 @@ body {
 }
 
 .babylon_viewport_info {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   position: absolute;
   left: 50%;
   bottom: 9px;
   transform: translateX(-50%);
   color: #e0694b;
-  text-align: left;
+  text-align: center;
   white-space: nowrap;
   pointer-events: auto;
+}
+
+.babylon_viewport_logo {
+  align-self: center;
+  display: block;
+  width: 32px;
+  height: 32px;
 }
 
 .babylon_viewport_info .corner-title,
 .babylon_viewport_info .corner-body {
   color: inherit;
+  text-align: center;
 }
 
 .babylon_viewport_info_button {
@@ -302,15 +322,6 @@ body {
   display: grid;
   gap: 10px;
   line-height: 1.15;
-}
-
-.babylon_settings {
-  color: #e0694b;
-}
-
-.babylon_settings_dialog .dialog_header h2,
-.babylon_settings_dialog .dialog_close {
-  color: #e0694b;
 }
 
 .dialog_option {

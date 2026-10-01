@@ -3,12 +3,18 @@ import versionText from "../../../version.txt?raw";
 import { BrowserSurface } from "./BrowserSurface.jsx";
 import { aspectRatioPresets, defaultLayout } from "./layout.js";
 import { Dialog } from "./Dialog.jsx";
-import { getScaleDisplayText } from "../content/babylon/showcase-overlay.js";
+import { getRenderScaleDisplayText } from "../content/babylon/showcase-overlay.js";
+import babylonLogoUrl from "../content/babylon/images/babylon_logo_32x32.png?url";
+import {
+  cycleRenderResolutionPreset,
+  getRenderResolutionDimensions,
+  isRenderResolutionPreset,
+} from "../content/babylon/render-resolution.js";
 import { ViewportInfoContext } from "./ViewportInfoContext.jsx";
 
 const configStorageKey = "github-repository-template.config";
 const fullscreenStorageKey = "github-repository-template.fullscreen";
-const defaultConfig = Object.freeze({ fullscreen: false, orientation: null, hudVisible: true });
+const defaultConfig = Object.freeze({ fullscreen: false, orientation: null, hudVisible: true, renderPreset: "native" });
 const repositoryUrl = "https://github.com/SamuelAsherRivello/github-repository-template";
 
 function readConfig() {
@@ -20,6 +26,7 @@ function readConfig() {
         : localStorage.getItem(fullscreenStorageKey) === "true",
       orientation: saved?.orientation === "portrait" || saved?.orientation === "landscape" ? saved.orientation : defaultConfig.orientation,
       hudVisible: typeof saved?.hudVisible === "boolean" ? saved.hudVisible : defaultConfig.hudVisible,
+      renderPreset: isRenderResolutionPreset(saved?.renderPreset) ? saved.renderPreset : defaultConfig.renderPreset,
     };
   } catch {
     return defaultConfig;
@@ -40,7 +47,7 @@ function GitHubMark() {
 
 export function App({ layout = defaultLayout, content = null, gutters = {} }) {
   const [config, setConfig] = useState(readConfig);
-  const { orientation: orientationOverride, hudVisible } = config;
+  const { orientation: orientationOverride, hudVisible, renderPreset } = config;
   const setOrientationOverride = (orientation) => setConfig((current) => ({ ...current, orientation }));
   const setHudVisible = (hudVisible) => setConfig((current) => ({ ...current, hudVisible }));
   const landscape = (orientationOverride ?? layout.orientation) === "landscape";
@@ -55,7 +62,26 @@ export function App({ layout = defaultLayout, content = null, gutters = {} }) {
   const [windowPixels, setWindowPixels] = useState({ width: window.innerWidth, height: window.innerHeight });
   const [devicePixelRatio, setDevicePixelRatio] = useState(window.devicePixelRatio);
   const [activeDialog, setActiveDialog] = useState(null);
-  const [pixelPerfectScale, setPixelPerfectScale] = useState(2);
+  const [renderScale, setRenderScale] = useState(1);
+  const [reportedRenderResolution, setReportedRenderResolution] = useState(null);
+  const nativeBackingSize = {
+    width: Math.floor(viewportPixels.width * devicePixelRatio),
+    height: Math.floor(viewportPixels.height * devicePixelRatio),
+  };
+  const estimatedRenderResolution = getRenderResolutionDimensions(
+    nativeBackingSize.width,
+    nativeBackingSize.height,
+    renderPreset,
+  );
+  const renderResolutionInfo = reportedRenderResolution
+    && reportedRenderResolution.preset === renderPreset
+    && reportedRenderResolution.nativeWidth === nativeBackingSize.width
+    && reportedRenderResolution.nativeHeight === nativeBackingSize.height
+    ? reportedRenderResolution
+    : estimatedRenderResolution;
+  const renderResolutionText = renderResolutionInfo.width > 0
+    ? `(R) RenderResolution: ${renderResolutionInfo.width}x${renderResolutionInfo.height}${renderPreset === "native" ? " (Native)" : ""}`
+    : "(R) RenderResolution: measuring…";
   const updateViewportPixels = useCallback((rect) => {
     setViewportPixels((current) => {
       const next = { width: Math.round(rect.width), height: Math.round(rect.height) };
@@ -85,6 +111,10 @@ export function App({ layout = defaultLayout, content = null, gutters = {} }) {
       if (key === "c") setActiveDialog((dialog) => dialog === "config" ? null : "config");
       if (key === "v") setActiveDialog((dialog) => dialog === "stats" ? null : "stats");
       if (key === "b") setActiveDialog((dialog) => dialog === "babylon" ? null : "babylon");
+      if (key === "r" && !event.repeat) setConfig((current) => ({
+        ...current,
+        renderPreset: cycleRenderResolutionPreset(current.renderPreset),
+      }));
       if (event.key === "Escape") setActiveDialog(null);
     };
     window.addEventListener("keydown", handleShortcut);
@@ -137,15 +167,20 @@ export function App({ layout = defaultLayout, content = null, gutters = {} }) {
 
   return (
     <ViewportInfoContext.Provider value={{
-      scale: pixelPerfectScale,
-      setScale: setPixelPerfectScale,
+      scale: renderScale,
+      setScale: setRenderScale,
+      renderPreset,
+      nativeBackingSize,
+      setRenderResolutionInfo: setReportedRenderResolution,
       sceneBorderVisible: activeDialog === "babylon",
       processingPaused: activeDialog !== null,
     }}>
     <BrowserSurface layout={activeLayout} gutters={gutters} onViewportResize={updateViewportPixels} ui={<>
       {hudVisible && <div className="babylon_viewport_info" aria-label="Babylon Lite viewport settings">
+        <img className="babylon_viewport_logo" src={babylonLogoUrl} alt="" aria-hidden="true" />
         <div className="corner-title"><button className="babylon_viewport_info_button" type="button" onClick={() => setActiveDialog("babylon")} aria-label="Open Babylon Lite settings">(B)</button> Babylon Lite</div>
-        <div className="corner-body">{getScaleDisplayText(pixelPerfectScale)}</div>
+        <div className="corner-body"><button className="babylon_viewport_info_button" type="button" onClick={() => setConfig((current) => ({ ...current, renderPreset: cycleRenderResolutionPreset(current.renderPreset) }))} aria-label={`Cycle render resolution, currently ${renderResolutionInfo.width} by ${renderResolutionInfo.height}`}>{renderResolutionText}</button></div>
+        <div className="corner-body">{getRenderScaleDisplayText(renderScale)}</div>
         <div className="corner-body">Mode: 2DPixelPerfect</div>
       </div>}
       {hudVisible && <Corner position="top_left">
@@ -178,7 +213,7 @@ export function App({ layout = defaultLayout, content = null, gutters = {} }) {
         </section>
       </Corner>}
       {activeDialog && <Dialog title={activeDialog === "config" ? "Config" : activeDialog === "babylon" ? "Babylon Lite" : "Stats"} className={activeDialog === "babylon" ? "babylon_settings_dialog" : ""} onClose={() => setActiveDialog(null)}>
-          {activeDialog === "babylon" ? <div className="dialog_options babylon_settings"><div>Babylon Lite</div><div>{getScaleDisplayText(pixelPerfectScale)}</div><div>Mode: 2DPixelPerfect</div></div>
+          {activeDialog === "babylon" ? <div className="dialog_options babylon_settings"><div>Babylon Lite</div><div>{renderResolutionText}</div><div>{getRenderScaleDisplayText(renderScale)}</div><div>Mode: 2DPixelPerfect</div></div>
             : activeDialog === "config" ? <div className="dialog_options">
             <label className="dialog_option"><span>(F) Fullscreen</span><input type="checkbox" checked={fullscreenPreferred} onChange={toggleFullscreen} /></label>
             <label className="dialog_option"><span>(P) Portrait</span><input type="checkbox" checked={portrait} onChange={(event) => setOrientationOverride(event.target.checked ? "portrait" : "landscape")} /></label>
