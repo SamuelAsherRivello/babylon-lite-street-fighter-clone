@@ -73,7 +73,8 @@ This is the project details...
 
 <!-- AI: Do not add more than one sentence of introductory text at the top of this section. -->
 
-- `project-name/index.html` provides the plain safe-area HTML shell.
+- `project-name/index.html` mounts the React browser surface; `project-name/src/` contains viewport, gutter, content, and UI composition.
+- [Layout and game integration](project-name/documentation/layout-and-game-integration.md) explains configuration and future renderer responsibilities.
 - `project-name/test/` contains focused automated checks for the starter.
 - `project-name/documentation/` contains canonical README images and project
   documentation assets.
