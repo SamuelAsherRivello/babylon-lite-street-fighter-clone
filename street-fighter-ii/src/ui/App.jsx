@@ -97,11 +97,6 @@ export function App({ layout = defaultLayout, content = null, gutters = {} }) {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
       const key = event.key.toLowerCase();
       if (event.target instanceof HTMLElement && event.target.closest(".fight-game")) return;
-      if (key === "f") toggleFullscreen();
-      if (key === "h") setConfig((current) => ({ ...current, hudVisible: !current.hudVisible }));
-      if (key === "t") resetLocalStorage();
-      if (key === "c") setActiveDialog((dialog) => dialog === "config" ? null : "config");
-      if (key === "v") setActiveDialog((dialog) => dialog === "stats" ? null : "stats");
       if (key === "b") setActiveDialog((dialog) => dialog === "babylon" ? null : "babylon");
       if (key === "r" && !event.repeat) setConfig((current) => ({
         ...current,
@@ -193,9 +188,9 @@ export function App({ layout = defaultLayout, content = null, gutters = {} }) {
       {activeDialog && <Dialog title={activeDialog === "config" ? "Config" : activeDialog === "babylon" ? "Babylon Lite" : "Stats"} className={activeDialog === "babylon" ? "babylon_settings_dialog" : ""} onClose={() => setActiveDialog(null)}>
           {activeDialog === "babylon" ? <div className="dialog_options babylon_settings"><div>Babylon Lite</div><div>{renderResolutionText}</div><div>{getRenderScaleDisplayText(renderScale)}</div><div>Mode: 2DPixelPerfect</div></div>
             : activeDialog === "config" ? <div className="dialog_options">
-            <label className="dialog_option"><span>(F) Fullscreen</span><input type="checkbox" checked={fullscreenPreferred} onChange={toggleFullscreen} /></label>
-            <label className="dialog_option"><span>(H) HUD</span><input type="checkbox" checked={hudVisible} onChange={(event) => setHudVisible(event.target.checked)} /></label>
-            <button type="button" onClick={resetLocalStorage}>(T) Reset Local Storage</button>
+            <label className="dialog_option"><span>Fullscreen</span><input type="checkbox" checked={fullscreenPreferred} onChange={toggleFullscreen} /></label>
+            <label className="dialog_option"><span>HUD</span><input type="checkbox" checked={hudVisible} onChange={(event) => setHudVisible(event.target.checked)} /></label>
+            <button type="button" onClick={resetLocalStorage}>Reset Local Storage</button>
           </div> : <div className="dialog_options"><div>v{versionNumber}</div><div>DPR: {devicePixelRatio}</div><div>{activeLayout.label ?? `${activeLayout.width}:${activeLayout.height}`} Aspect</div><div>{windowPixels.width}x{windowPixels.height} Window</div><div>{viewportPixels.width}x{viewportPixels.height} Viewport</div></div>}
       </Dialog>}
     </>}>{content}</BrowserSurface>
