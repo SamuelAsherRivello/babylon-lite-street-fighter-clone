@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import versionText from "../../version.txt?raw";
+import versionText from "../../../version.txt?raw";
 import { BrowserSurface } from "./BrowserSurface.jsx";
 import { aspectRatioPresets, defaultLayout } from "./layout.js";
-import { Menu } from "./Menu.jsx";
+import { Dialog } from "./Dialog.jsx";
 
 const fullscreenStorageKey = "github-repository-template.fullscreen";
 const repositoryUrl = "https://github.com/SamuelAsherRivello/github-repository-template";
@@ -35,7 +35,7 @@ export function App({ layout = defaultLayout, content = null, gutters = {} }) {
   const [windowPixels, setWindowPixels] = useState({ width: window.innerWidth, height: window.innerHeight });
   const [devicePixelRatio, setDevicePixelRatio] = useState(window.devicePixelRatio);
   const [hudVisible, setHudVisible] = useState(true);
-  const [activePanel, setActivePanel] = useState(null);
+  const [activeDialog, setActiveDialog] = useState(null);
   const updateViewportPixels = useCallback((rect) => {
     setViewportPixels((current) => {
       const next = { width: Math.round(rect.width), height: Math.round(rect.height) };
@@ -61,9 +61,9 @@ export function App({ layout = defaultLayout, content = null, gutters = {} }) {
       if (key === "f") toggleFullscreen();
       if (key === "p") setOrientationOverride((current) => current === "portrait" ? "landscape" : "portrait");
       if (key === "h") setHudVisible((visible) => !visible);
-      if (key === "c") setActivePanel((panel) => panel === "config" ? null : "config");
-      if (key === "s") setActivePanel((panel) => panel === "stats" ? null : "stats");
-      if (event.key === "Escape") setActivePanel(null);
+      if (key === "c") setActiveDialog((dialog) => dialog === "config" ? null : "config");
+      if (key === "i") setActiveDialog((dialog) => dialog === "stats" ? null : "stats");
+      if (event.key === "Escape") setActiveDialog(null);
     };
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
@@ -112,16 +112,16 @@ export function App({ layout = defaultLayout, content = null, gutters = {} }) {
         </a>
       </Corner>}
       {hudVisible && <Corner position="bottom_left">
-        <section id="settings" aria-labelledby="settings_title">
-          <div id="settings_title" className="corner_title">(C) Config</div>
-          {hudVisible && <label className="corner_body settings_option"><span>(F) Fullscreen</span><input id="fullscreen_toggle" type="checkbox" checked={fullscreenPreferred} onChange={toggleFullscreen} /></label>}
-          {hudVisible && <label className="corner_body settings_option"><span>(P) Portrait</span><input id="portrait_checkbox" type="checkbox" checked={portrait} onChange={(event) => setOrientationOverride(event.target.checked ? "portrait" : "landscape")} /></label>}
-          <label className="corner_body settings_option"><span>(H) HUD</span><input id="hud_checkbox" type="checkbox" checked={hudVisible} onChange={(event) => setHudVisible(event.target.checked)} /></label>
+        <section id="config" aria-labelledby="config_title">
+          <div id="config_title" className="corner_title">(C) Config</div>
+          {hudVisible && <label className="corner_body corner_option"><span>(F) Fullscreen</span><input id="fullscreen_toggle" type="checkbox" checked={fullscreenPreferred} onChange={toggleFullscreen} /></label>}
+          {hudVisible && <label className="corner_body corner_option"><span>(P) Portrait</span><input id="portrait_checkbox" type="checkbox" checked={portrait} onChange={(event) => setOrientationOverride(event.target.checked ? "portrait" : "landscape")} /></label>}
+          <label className="corner_body corner_option"><span>(H) HUD</span><input id="hud_checkbox" type="checkbox" checked={hudVisible} onChange={(event) => setHudVisible(event.target.checked)} /></label>
         </section>
       </Corner>}
       {hudVisible && <Corner position="bottom_right">
         <section id="stats" aria-labelledby="stats_title">
-          <div id="stats_title" className="corner_title">(S) Stats</div>
+          <div id="stats_title" className="corner_title">(I) Stats</div>
           <div id="version" className="corner_body">v{versionNumber}</div>
           <div className="corner_body">DPR: {devicePixelRatio}</div>
           <div id="aspect_ratio" className="corner_body">{activeLayout.label ?? `${activeLayout.width}:${activeLayout.height}`} Aspect</div>
@@ -129,13 +129,13 @@ export function App({ layout = defaultLayout, content = null, gutters = {} }) {
           <div className="corner_body">{viewportPixels.width}x{viewportPixels.height} Viewport</div>
         </section>
       </Corner>}
-      {activePanel && <Menu title={activePanel === "config" ? "(C) Config" : "(S) Stats"} onClose={() => setActivePanel(null)}>
-          {activePanel === "config" ? <div className="panel_options">
-            <label className="settings_option"><span>(F) Fullscreen</span><input type="checkbox" checked={fullscreenPreferred} onChange={toggleFullscreen} /></label>
-            <label className="settings_option"><span>(P) Portrait</span><input type="checkbox" checked={portrait} onChange={(event) => setOrientationOverride(event.target.checked ? "portrait" : "landscape")} /></label>
-            <label className="settings_option"><span>(H) HUD</span><input type="checkbox" checked={hudVisible} onChange={(event) => setHudVisible(event.target.checked)} /></label>
-          </div> : <div className="panel_options"><div>v{versionNumber}</div><div>DPR: {devicePixelRatio}</div><div>{activeLayout.label ?? `${activeLayout.width}:${activeLayout.height}`} Aspect</div><div>{windowPixels.width}x{windowPixels.height} Window</div><div>{viewportPixels.width}x{viewportPixels.height} Viewport</div></div>}
-      </Menu>}
+      {activeDialog && <Dialog title={activeDialog === "config" ? "Config" : "Stats"} onClose={() => setActiveDialog(null)}>
+          {activeDialog === "config" ? <div className="dialog_options">
+            <label className="dialog_option"><span>(F) Fullscreen</span><input type="checkbox" checked={fullscreenPreferred} onChange={toggleFullscreen} /></label>
+            <label className="dialog_option"><span>(P) Portrait</span><input type="checkbox" checked={portrait} onChange={(event) => setOrientationOverride(event.target.checked ? "portrait" : "landscape")} /></label>
+            <label className="dialog_option"><span>(H) HUD</span><input type="checkbox" checked={hudVisible} onChange={(event) => setHudVisible(event.target.checked)} /></label>
+          </div> : <div className="dialog_options"><div>v{versionNumber}</div><div>DPR: {devicePixelRatio}</div><div>{activeLayout.label ?? `${activeLayout.width}:${activeLayout.height}`} Aspect</div><div>{windowPixels.width}x{windowPixels.height} Window</div><div>{viewportPixels.width}x{viewportPixels.height} Viewport</div></div>}
+      </Dialog>}
     </>}>{content}</BrowserSurface>
   );
 }

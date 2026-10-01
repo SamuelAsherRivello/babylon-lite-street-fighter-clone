@@ -20,6 +20,10 @@ The corner spacing is controlled by the `--viewport-padding` CSS variable in `pr
 
 ## Future renderer policies and lifecycle
 
+## Keyboard input ownership
+
+The React UI layer must not assign shortcuts or otherwise capture **WASD, the four Arrow keys, Spacebar, or Enter**. Keep these keys available for the content layer, which may use them for game controls when needed. Choose other keys for React UI shortcuts and display their assigned keys in the UI.
+
 Rendering-policy presets with optional overrides are proposed consumer defaults, not confirmed installed features:
 
 | Policy | Future integration responsibilities |
@@ -62,7 +66,7 @@ A renderer integration should report CSS/client size, DPR, logical/internal/back
 
 ## Local verification
 
-Run `npm ci`, `npm test`, and `npm run build` from the repository root. Start `npm run dev` and open Vite's URL. See [layout verification](layout-verification.md) for evidence and separate existing skill-test failures.
+Run `npm ci`, `npm test`, and `npm run build` from the repository root. Start `npm run dev` and open Vite's URL. The focused test suite covers the layout contract; separate existing skill-test failures may still be reported by the full suite.
 ## Conceptual layout and parameter tree
 
 Content extends beneath the UI; diagram spacing is illustrative. Shared and App parameters are implemented; Game parameters are future responsibilities.

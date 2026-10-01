@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import viteConfig from '../../vite.config.js';
-import { defaultLayout, fitViewport, validateLayout } from '../src/layout.js';
+import { defaultLayout, fitViewport, validateLayout } from '../src/ui/layout.js';
 
 test('keeps npm/application and GitHub Pages roots', () => {
   assert.equal(viteConfig.root, 'project-name');
@@ -29,7 +29,7 @@ test('invalid dimensions and orientation give actionable errors', () => {
 });
 test('preserves corner contracts and renderer-free guidance', async () => {
   const read = name => readFile(new URL('../'+name,import.meta.url),'utf8');
-  const [app,surface,main,html,guide] = await Promise.all([read('src/App.jsx'),read('src/BrowserSurface.jsx'),read('src/main.jsx'),read('index.html'),read('documentation/layout-and-game-integration.md')]);
+  const [app,surface,main,html,guide] = await Promise.all([read('src/ui/App.jsx'),read('src/ui/BrowserSurface.jsx'),read('src/main.jsx'),read('index.html'),read('documentation/layout-and-game-integration.md')]);
   assert.ok(main.includes('getElementById("root")'));
   assert.ok(html.includes('id="root"'));
   for (const id of ['content_layer','ui_layer','viewport','browser_surface']) assert.ok(surface.includes('id="'+id+'"'));
@@ -40,4 +40,18 @@ test('preserves corner contracts and renderer-free guidance', async () => {
   assert.match(surface,/Babylon Lite/);
   for (const term of ['Logical resolution','Internal render resolution','Canvas backing resolution','Display size','CSS size','fractional','StrictMode']) assert.ok(guide.includes(term));
   assert.doesNotMatch(surface,/import.*babylon/i);
+});
+test('keeps the UI and content source boundaries discoverable', async () => {
+  const read = name => readFile(new URL('../' + name, import.meta.url), 'utf8');
+  const [main, template, content, standards] = await Promise.all([
+    read('src/main.jsx'),
+    read('src/ui/Template.jsx'),
+    read('src/content/Content.jsx'),
+    read('documentation/coding-standards.md'),
+  ]);
+  assert.match(main, /\.\/ui\/App\.jsx/);
+  assert.match(template, /export function Template/);
+  assert.match(content, /export function Content/);
+  assert.match(standards, /src\/ui\//);
+  assert.match(standards, /src\/content\//);
 });
