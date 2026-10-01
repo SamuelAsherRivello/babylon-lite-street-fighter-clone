@@ -110,8 +110,8 @@ The checked-in **Release** workflow runs `npm ci` and `npm test`, increments the
 
 ## Original AI Prompt
 
-<details>
-<summary>Show the original request</summary>
+Read the full original prompt (edited for grammar, punctuation, spelling, and formatting).
+
 ```text
 $ai-skills-create-game
 
@@ -207,14 +207,7 @@ $ai-skills-create-game
   - Return the playable demo URL, game and server repository links, release links, local checkout paths, verification results, and any remaining limitations. Report the completion status of all three OpenSpec milestones.
 ```
 
-</details>
-
-### Consequential follow-up requirements
-
-- Use the supplied playable SNES and Street Fighter II reference links, and include gameplay and art references in the prompt.
-- Create the proposal with OpenSpec, apply it, and finish the complete multiplayer game. The game must launch from the README and be fully playable when complete.
-- Continue automatically through proposal, implementation, GitHub updates, release, and deployment. Preserve unrelated work and do not create pull requests.
-- Include Ryu, Chun-Li, and one original fighter; author the game art and avoid extracting copyrighted game assets.
+Prompt links: [Playable SNES gameplay reference](https://www.retrogames.cz/play_304-SNES.php) · [Street Fighter II overview](https://en.wikipedia.org/wiki/Street_Fighter_II) · [Capcom visual reference](https://www.streetfighter.com/en/35th/history.html) · [Nintendo SNES reference](https://www.nintendo.com/en-gb/Games/Super-Nintendo/Street-Fighter-II-The-World-Warrior-793127.html) · [Arcade gameplay screenshot search](https://www.google.com/search?tbm=isch&q=Street+Fighter+II+The+World+Warrior+arcade+gameplay+screenshots) · [SNES character-select screenshot search](https://www.google.com/search?tbm=isch&q=Street+Fighter+II+SNES+character+select+stage+screenshots)
 
 ## Credits
 
