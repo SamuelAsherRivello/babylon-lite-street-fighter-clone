@@ -1,12 +1,12 @@
 # Layout and future game integration
 
-The starter implements a React browser surface, centered ratio-preserving viewport, Babylon Lite 2D content, external gutters, and UI corners. The default content is a WebGPU-rendered pixel-art showcase. Resize the browser and use Fullscreen to review the default landscape 16:9 layout: the darker charcoal area is the gutter and the lighter charcoal area is the viewport. Portrait is unchecked by default; check it to switch to the portrait ratio. This choice resets on a fresh page load.
+The starter implements a React browser surface, centered ratio-preserving viewport, Babylon Lite 2D content, external gutters, and UI corners. The default content is a WebGPU-rendered pixel-art showcase, not gameplay. New app and game concepts choose portrait or landscape, never square. The template demo can switch between landscape and portrait; when adapting it into a project, choose one orientation, keep the corresponding template viewport display, and remove the orientation toggle, shortcut, and saved override. The viewport is the primary content area in both windowed and fullscreen modes. The gutter layout is required, but adding secondary content there (for example, instructions or backstory) is optional.
 
 ## Implemented configuration
 
-Edit `project-name/src/ui/layout.js` for defaults. Positive finite `width` and `height` define a ratio, not a resolution. They must match `orientation`: portrait width < height, landscape width > height, square width = height. `gutterBackground` sets the outside background. Invalid configuration displays an actionable alert.
+Edit `project-name/src/ui/layout.js` for defaults. Positive finite `width` and `height` define a ratio, not a game resolution. The layout validator supports square ratios for general use, but new app and game concepts select portrait (width < height) or landscape (width > height). `gutterBackground` sets the outside background. Invalid configuration displays an actionable alert.
 
-`App` accepts `layout`, `content` (React elements), and `gutters` with optional `top`, `bottom`, `left`, and `right` React elements. Supply these in `project-name/src/main.jsx`. Content fills the viewport and scrolls internally under the UI. Gutters occupy residual space only, scroll internally, and collapse to zero without shrinking the viewport. Corners keep title, links, settings, and version roles; bounded scroll regions and adaptive insets keep controls reachable at small sizes.
+`App` accepts `layout`, `content` (React elements), and `gutters` with optional `top`, `bottom`, `left`, and `right` React elements. Supply these in `project-name/src/main.jsx`. Generic content can scroll internally under the UI. Gutters occupy residual space only, scroll internally, and collapse to zero without shrinking the viewport. For games, choose whether and how game content scrolls to suit the design. Corners keep title, links, settings, and version roles; bounded scroll regions and adaptive insets keep controls reachable at small sizes.
 
 The page structure allows the complete HUD to remain inside the viewport and visible during fullscreen. Gutters are not visible in fullscreen. Custom UI in a gutter is acceptable only as secondary UI; all primary UI must be implemented in React within the viewport.
 
@@ -22,7 +22,13 @@ The corner spacing is controlled by the `--viewport-padding` CSS variable in `pr
 
 ## Implemented renderer policies and lifecycle
 
-Edit `project-name/src/content/babylon/config.js` to change the developer-selected renderer and content style. It defaults to Babylon Lite + 2D; no runtime mode picker is added. The Babylon Lite 2D selection uses Pixel Perfect. Selecting 3D does not apply that 2D preset; it directs the developer to the separate Performance-scaled 3D policy below. This template does not include a 3D showcase scene.
+Edit `project-name/src/content/babylon/config.js` to change the developer-selected renderer and content style. It defaults to Babylon Lite + 2D; no runtime mode picker is added. Every 2D game uses Pixel Perfect. This policy does not force the game's logical resolution or render scale; choose both for the game. Selecting 3D does not apply the 2D policy and does not create a scene: implement the requested 3D game scene and its renderer setup using the separate Performance-scaled 3D guidance below. This template does not include a 3D showcase scene. Babylon Lite requires WebGPU. Do not add a fallback renderer; show a clear unsupported-browser message when WebGPU is unavailable or initialization fails.
+
+### Game content and audio choices
+
+Replace the included Babylon pixel-art showcase with the requested game's content. It demonstrates renderer integration only and is not a game scene or required gameplay. Each game has full freedom to choose its logical resolution, render scale, and whether and how content scrolls.
+
+Sound is optional, and music is not recommended. When sound is included, recommend 4 to 10 sound effects tied to game events. Provide a UI mute toggle and a documented URL argument that mutes all sound, so AI testing can run silently while human players can enable sound in the normal experience.
 
 ## Keyboard input ownership
 
@@ -32,9 +38,9 @@ The React UI layer must not assign shortcuts or otherwise capture **WASD, the fo
 
 | Policy | Behavior |
 | --- | --- |
-| Responsive smooth | Future option: match viewport CSS presentation size and choose backing resolution and filtering for smooth content. |
-| Pixel Perfect (Babylon Lite + 2D default) | Implemented: use a 320x180 logical stage with centered integer logical-to-CSS scaling when it fits; sample the imported 32x32 tile with nearest minification and magnification; disable mipmaps and MSAA; keep the canvas backing DPR-aware. |
-| Performance-scaled 3D | Separate policy: choose perspective or orthographic projection; use fixed or dynamic internal resolution scaling with explicit bounds and a performance target. Keep UI at independent CSS resolution. Do not apply the Pixel Perfect 2D defaults automatically. |
+| Responsive smooth | Future option for non-game integrations: match viewport CSS presentation size and choose backing resolution and filtering for smooth content. 2D games use Pixel Perfect. |
+| Pixel Perfect (required for 2D games) | The showcase uses a 320x180 logical stage with centered integer logical-to-CSS scaling when it fits; it samples the imported 32x32 tile with nearest minification and magnification, disables mipmaps and MSAA, and keeps the canvas backing DPR-aware. A game chooses its own logical resolution and render scale. |
+| Performance-scaled 3D | Separate policy: choose perspective or orthographic projection; use fixed or dynamic internal resolution scaling with explicit bounds and a performance target. Keep UI at independent CSS resolution. The 2D Pixel Perfect policy does not apply to 3D. |
 
 The included Pixel Perfect showcase has a white background and an original 32x32 PNG at `project-name/src/content/babylon/images/concentric-squares-32.png`, made from concentric black and gray squares. Its native texels contain only hard black/gray boundaries; rotation reveals deliberate stair-step edges. The sprite is 32x32 logical world units and stays centered at the world origin. Its projected raster footprint changes with render resolution while its world size and center stay fixed. A React UI label sits in the lower-center target area: `(B) Babylon Lite` uses the existing corner-title style, while `Render Scale: <relative scale>x` and `Mode: 2DPixelPerfect` use corner-body. Render Scale is relative to the native backing resolution: Quarter is 0.25x, Half is 0.5x, Native is 1x, and Double is 2x. It is separate from the logical-to-CSS fit scale. The label uses the supplied `#e0694b` accent. Clicking `(B)` or pressing B opens a React dialog repeating the same settings. While open, the Babylon content surface has a 5-CSS-pixel `#e0694b` DOM outline; closing the dialog or pressing Escape removes it. The Babylon Lite render loop, including sprite animation processing, pauses while any Config, Stats, or Babylon Lite dialog is open and resumes when all are closed. Resize/DPR changes update the backing-pixel geometry.
 
@@ -115,7 +121,7 @@ Content extends beneath the UI; diagram spacing is illustrative. Shared and App 
 Template
 |
 +-- Shared
-|   +-- Viewport orientation: portrait / landscape / square
+|   +-- Viewport orientation: portrait / landscape (choose one for new apps and games)
 |   +-- Project-defined aspect ratio: width:height
 |   +-- Gutter background and optional React content
 |   +-- React UI layer with the four corner roles
@@ -130,7 +136,7 @@ Template
     +-- Content style: 2D / 3D
     +-- Rendering policy
     |   +-- Responsive smooth
-    |   +-- Pixel Perfect (default for Babylon Lite + 2D)
+    |   +-- Pixel Perfect (required for 2D games)
     |   |   +-- Logical resolution: width x height
     |   |   +-- Optional tile size and grid dimensions
     |   |   +-- Derive logical resolution from tile grid

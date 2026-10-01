@@ -26,6 +26,31 @@ point and adapt them to the requested game. For an app, remove Babylon content
 and dependencies, along with associated imports, tests, assets, and docs used
 only by that content; update the lockfile after dependency changes.
 
+For every new app or game concept, choose either portrait or landscape before
+implementation. Use the template's corresponding viewport display for the
+chosen orientation and remove the template's orientation toggle, shortcut,
+and persisted override. Do not add a second orientation or a layout that
+attempts to serve both orientations. Do not select square for a new app or
+game concept.
+
+When adapting the starter into a game, treat the Babylon showcase as a renderer
+example and replace it with the requested game. Babylon Lite is WebGPU-only;
+games using it must show a clear unsupported-browser message and must not add a
+fallback renderer. Implement the scene and renderer setup required by the game,
+including for 3D. Every 2D game uses the Pixel Perfect rendering policy, while
+each game chooses its own logical resolution and render scale.
+
+The viewport is the priority location for primary game content and must remain
+usable in windowed and fullscreen modes. The template gutter layout is
+required, but adding secondary material there (such as design elements,
+instructions, or backstory) is optional. Games have full freedom to choose
+whether and how their content scrolls.
+
+Game audio is optional; music is not recommended. If a game includes sound,
+recommend 4 to 10 event-based sound effects and provide both an in-game mute
+toggle and a documented URL argument that mutes all sound for silent AI
+testing. Human players may enable sound in the normal experience.
+
 ## Repository and application layout
 
 - The repository root is the npm project root and contains `.git`, package

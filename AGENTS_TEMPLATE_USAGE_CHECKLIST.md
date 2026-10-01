@@ -17,6 +17,26 @@ reference-only requests, follow `AGENTS.md` and do not copy files.
       content and Babylon dependencies, including associated imports, tests,
       assets, and documentation that exist only for that content. Update the
       lockfile after dependency changes.
+- [ ] Choose **portrait** or **landscape** for the app or game concept before
+      implementation, based on its intended use and content. Use the matching
+      template viewport display, remove its orientation toggle, shortcut, and
+      persisted override, and implement only the chosen orientation. Do not
+      select square for a new app or game concept. Record the choice in project
+      documentation or implementation notes.
+- [ ] For a game, replace the Babylon showcase with the requested game; do not
+      mistake it for gameplay. Babylon Lite is WebGPU-only: show a clear
+      unsupported-browser message and do not add a fallback renderer. Implement
+      the requested scene and renderer setup, including for 3D. Use Pixel
+      Perfect for every 2D game, while choosing logical resolution and render
+      scale for that game.
+- [ ] Keep primary game content in the viewport so it works in windowed and
+      fullscreen modes. Keep the template gutter layout; secondary gutter
+      content such as instructions, design elements, or backstory is optional.
+      Choose whether and how game content scrolls to suit the game.
+- [ ] Game audio is optional and music is not recommended. If sound is
+      included, recommend 4 to 10 event-based sound effects and provide both a
+      UI mute toggle and a documented URL argument that mutes all sound for AI
+      testing.
 - [ ] For GitHub creation, use GitHub's **Use this template** flow when the user
       has authorized creating the destination. For a local copy, require an
       explicitly named destination and copy tracked files without `.git`,
@@ -141,7 +161,7 @@ Perform this section only when OpenSpec is selected for the resulting project.
 ## 6. Template-use scorecard
 
 Answer each question **true** or **false** based on evidence in the resulting
-project. Award **+1 point for each true answer** (maximum 10 points).
+project. Award **+1 point for each true answer** (maximum 12 points).
 
 - [ ] Is the project purpose reflected in a renamed app folder instead of
       leaving `project-name/` as the final application name?
@@ -156,6 +176,10 @@ project. Award **+1 point for each true answer** (maximum 10 points).
       been removed or adapted to the resulting project?
 - [ ] Does the app preserve or deliberately adapt the four HTML corner roles
       documented in `AGENTS.md`?
+- [ ] Does the project document and implement exactly one selected orientation
+      (portrait or landscape), with the orientation toggle removed?
+- [ ] If the game includes sound, does it provide a UI mute toggle and a URL
+      argument that mutes all sound?
 - [ ] Are React UI shortcuts kept clear of WASD, the arrow keys, Spacebar, and
       Enter, with assigned keys shown in the UI?
 - [ ] Does `.gitignore` cover the resulting project's generated files and
