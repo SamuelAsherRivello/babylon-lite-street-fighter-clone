@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile, stat } from 'node:fs/promises';
 import test from 'node:test';
-import { contentConfig, getRenderingPolicy, logicalResolution, pixelPerfectOptions, stageImageSize } from '../src/content/babylon/config.js';
+import { contentConfig, getRenderingPolicy, logicalResolution, pixelPerfectOptions, stageImageSizes, STAGES } from '../src/content/babylon/config.js';
 import { getInitializationMessage } from '../src/content/babylon/initialization.js';
 import { getRenderResolutionDimensions } from '../src/content/babylon/render-resolution.js';
 
@@ -25,12 +25,18 @@ test('keeps render resolution positive and caps upscaling to the adapter limit',
 test('shows a useful WebGPU fallback and initializes the real authored stage texture', async () => {
   assert.match(getInitializationMessage(false, new Error('unsupported')), /requires WebGPU/);
   assert.match(getInitializationMessage(true, new Error('decode failed')), /could not initialize/);
-  assert.deepEqual(stageImageSize, {width:1448,height:1016});
+  assert.deepEqual(stageImageSizes.dojo, {width:1448,height:1086});
+  assert.deepEqual(STAGES.map((stage) => stage.id), ['dojo','harbor','snow']);
+  for (const stage of STAGES) {
+    const file = stage.id === 'dojo' ? 'dojo-sunset-original.png' : stage.id === 'harbor' ? 'harbor-market-original.png' : 'snow-temple-original.png';
+    assert.ok((await stat(new URL(`../documentation/art/${file}`, import.meta.url))).size > 100_000);
+  }
   const artPath = new URL('../documentation/art/dojo-sunset-original.png', import.meta.url);
   assert.ok((await stat(artPath)).size > 100_000);
   const source = await readFile(new URL('../src/content/Content.jsx', import.meta.url), 'utf8');
   assert.match(source, /createEngine\(canvas, pixelPerfectOptions\.engine\)/);
   assert.match(source, /loadTexture2D\(engine, stageUrl, pixelPerfectOptions\.texture\)/);
+  assert.match(source, /\[stageUrl, stageImageSize\]/);
   assert.match(source, /await startEngine\(engine\)/);
   assert.match(source, /disposeEngine\(engine\)/);
 });

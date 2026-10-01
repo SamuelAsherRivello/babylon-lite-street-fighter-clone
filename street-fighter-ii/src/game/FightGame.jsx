@@ -4,8 +4,11 @@ import { FIGHTERS } from "./fighters.js";
 import { Content } from "../content/Content.jsx";
 import fighterSheet from "../../documentation/art/fighters-original.png?url";
 import { MultiplayerClient } from "@rmc/multiplayer-client";
+import { sampleGameState } from "./presentation.js";
+import { STAGES } from "../content/babylon/config.js";
 
 const serverUrl = import.meta.env.VITE_MULTIPLAYER_SERVER_URL || "https://rmc-colyseus-multiplayer-server.vercel.app";
+const muteFromUrl = new URLSearchParams(location.search).get("mute") === "1";
 
 const keys = new Set();
 const P1 = { left: "a", right: "d", up: "w", down: "s", punch: ["f", "g", "h"], kick: ["t", "y", "u"] };
@@ -37,9 +40,8 @@ function readGamepad(index, facing) {
 function Fighter({ player, index, pose }) {
   const row = ({ ryu: 0, chunLi: 1, kaida: 2 })[player.id] ?? 0;
   const frame = pose === "hit" || pose === "defeat" ? 6 : pose === "block" ? 7 : pose === "victory" || player.airborne ? 3 : player.attack ? (player.attack.pose === "kick" ? 5 : 4) : player.crouching ? 2 : player.vx ? 1 : 0;
-  return <div className={`fighter fighter-${index + 1} ${player.hitFlash ? "is-hit" : ""} ${player.guarding ? "is-blocking" : ""}`} style={{ left: `${player.x / 9.6}%`, bottom: `${((520 - player.y) / 5.2) + 2}%`, "--fighter-color": FIGHTERS[player.id].color, "--fighter-trim": FIGHTERS[player.id].trim, "--sheet-x": `${frame * 100 / 7}%`, "--sheet-y": `${row * 50}%`, transform: `translateX(-50%) scaleX(${player.facing < 0 ? -1 : 1})` }} aria-label={FIGHTERS[player.id].name}>
+  return <div className={`fighter fighter-${index + 1} ${player.hitFlash ? "is-hit" : ""} ${player.guarding ? "is-blocking" : ""}`} style={{ left: `${player.x / 9.6}%`, bottom: `${28 + (520 - player.y) / 7.2}%`, "--fighter-color": FIGHTERS[player.id].color, "--fighter-trim": FIGHTERS[player.id].trim, "--sheet-x": `${frame * 100 / 7}%`, "--sheet-y": `${row * 50}%`, transform: `translateX(-50%) scaleX(${player.facing < 0 ? -1 : 1})` }} aria-label={FIGHTERS[player.id].name}>
     <div className="fighter-sprite" style={{ backgroundImage: `url(${fighterSheet})` }} />
-    {player.attack?.projectile && <span className="projectile" />}
   </div>;
 }
 
@@ -52,9 +54,11 @@ export function FightGame() {
   const [view, setView] = useState(() => structuredClone(matchRef.current));
   const [screen, setScreen] = useState(() => new URLSearchParams(location.search).has("room") ? "online" : "menu");
   const [selected, setSelected] = useState(["ryu", "chunLi"]);
+  const [selectedStage, setSelectedStage] = useState("dojo");
   const [onlineCode, setOnlineCode] = useState(() => new URLSearchParams(location.search).get("room")?.toUpperCase().slice(0, 6) || "");
   const [onlineFighter, setOnlineFighter] = useState("ryu");
   const [onlineState, setOnlineState] = useState({ status: "idle", players: [], gameState: null, sessionId: null, seat: null, code: "", error: "" });
+  const [interpolatedRemote, setInterpolatedRemote] = useState(null);
   const [onlinePaused, setOnlinePaused] = useState(false);
   const [audioOn, setAudioOn] = useState(false);
   const [volume, setVolume] = useState(0.45);
@@ -62,6 +66,7 @@ export function FightGame() {
   const masterGainRef = useRef(null), musicTimerRef = useRef(null), nextNoteRef = useRef(0), musicStepRef = useRef(0);
   const audioOnRef = useRef(false), lastSfxEventRef = useRef(""), lastNetworkEventRef = useRef(-1);
   const screenRef = useRef(screen), clientRef = useRef(null), sequenceRef = useRef(0), onlinePausedRef = useRef(false);
+  const remoteFramesRef = useRef([]);
   screenRef.current = screen;
   onlinePausedRef.current = onlinePaused;
   audioOnRef.current = audioOn;
@@ -74,35 +79,60 @@ export function FightGame() {
     const touchUp = (event) => { const key = event.target.closest("[data-key]")?.dataset.key; if (key) { keys.delete(key); event.preventDefault(); } };
     window.addEventListener("keydown", down); window.addEventListener("keyup", up); window.addEventListener("blur", clear);
     window.addEventListener("pointerdown", touchDown); window.addEventListener("pointerup", touchUp); window.addEventListener("pointercancel", touchUp);
-    let tick = 0;
-    const loop = setInterval(() => {
-      tick++;
+    let animationFrame = 0;
+    let previousTime = performance.now();
+    let localAccumulator = 0;
+    let networkAccumulator = 0;
+    const frame = (now) => {
+      const elapsed = Math.min(0.1, Math.max(0, (now - previousTime) / 1000));
+      previousTime = now;
       if (screenRef.current === "onlineFight") {
         const client = clientRef.current, state = client?.state, match = state?.gameState;
-        if (state?.status === "connected" && match?.phase === "fight" && match.fighters?.length === 2 && tick % 3 === 0) {
-          const seat = match.players?.findIndex((player) => player.id === state.sessionId);
-          const fighter = match.fighters[seat >= 0 ? seat : 0];
-          const keyboard = readInput(P1, fighter.facing), pad = readGamepad(0, fighter.facing);
-          const input = onlinePausedRef.current ? { away: false, toward: false, up: false, down: false, jump: false, punch: false, kick: false } : Object.fromEntries(Object.keys(keyboard).map((key) => [key, pad[key] || keyboard[key]]));
-          client.send("input", { ...input, seq: ++sequenceRef.current });
+        if (state?.status === "connected" && match?.phase === "fight" && match.fighters?.length === 2) {
+          networkAccumulator += elapsed;
+          if (networkAccumulator >= 1 / 20) {
+            networkAccumulator %= 1 / 20;
+            const seat = match.players?.findIndex((player) => player.id === state.sessionId);
+            const fighter = match.fighters[seat >= 0 ? seat : 0];
+            const keyboard = readInput(P1, fighter.facing), pad = readGamepad(0, fighter.facing);
+            const input = onlinePausedRef.current ? { away: false, toward: false, up: false, down: false, jump: false, punch: false, kick: false } : Object.fromEntries(Object.keys(keyboard).map((key) => [key, pad[key] || keyboard[key]]));
+            client.send("input", { ...input, seq: ++sequenceRef.current });
+          }
+        } else {
+          networkAccumulator = 0;
         }
-        return;
-      }
-      const model = matchRef.current;
-      if (screenRef.current === "fight" && model.phase === "fight") {
-        const keyboard = [readInput(P1, model.players[0].facing), readInput(P2, model.players[1].facing)];
-        const pads = [readGamepad(0, model.players[0].facing), readGamepad(1, model.players[1].facing)];
-        const inputs = keyboard.map((input, i) => Object.fromEntries(Object.keys(input).map((key) => [key, pads[i][key] || input[key]])));
-        stepMatch(model, inputs);
-        if (model.event && model.event !== lastSfxEventRef.current) { lastSfxEventRef.current = model.event; if (audioOnRef.current) playSfx(); }
-        if (model.phase === "round-over") {
-          window.setTimeout(() => { if (matchRef.current.phase === "round-over") { resetRound(matchRef.current); setView(structuredClone(matchRef.current)); } }, 2400);
+        const frames = remoteFramesRef.current;
+        const sampled = sampleGameState(frames, now - 90);
+        if (sampled) setInterpolatedRemote(sampled);
+      } else {
+        setInterpolatedRemote(null);
+        const model = matchRef.current;
+        if (screenRef.current === "fight" && model.phase === "fight") {
+          localAccumulator = Math.min(0.1, localAccumulator + elapsed);
+          let advanced = false;
+          while (localAccumulator >= 1 / 60) {
+            const keyboard = [readInput(P1, model.players[0].facing), readInput(P2, model.players[1].facing)];
+            const pads = [readGamepad(0, model.players[0].facing), readGamepad(1, model.players[1].facing)];
+            const inputs = keyboard.map((input, i) => Object.fromEntries(Object.keys(input).map((key) => [key, pads[i][key] || input[key]])));
+            stepMatch(model, inputs);
+            localAccumulator -= 1 / 60;
+            advanced = true;
+            if (model.phase !== "fight") break;
+          }
+          if (advanced) {
+            if (model.event && model.event !== lastSfxEventRef.current) { lastSfxEventRef.current = model.event; if (audioOnRef.current) playSfx(); }
+            if (model.phase === "round-over") {
+              window.setTimeout(() => { if (matchRef.current.phase === "round-over") { resetRound(matchRef.current); setView(structuredClone(matchRef.current)); } }, 2400);
+            }
+            if (model.phase === "match-over") setScreen("results");
+            setView(structuredClone(model));
+          }
         }
-        if (model.phase === "match-over") setScreen("results");
-        setView(structuredClone(model));
       }
-    }, 1000 / 60);
-    return () => { clearInterval(loop); clearInterval(musicTimerRef.current); clientRef.current?.disconnect(); audioRef.current?.close(); window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); window.removeEventListener("blur", clear); window.removeEventListener("pointerdown", touchDown); window.removeEventListener("pointerup", touchUp); window.removeEventListener("pointercancel", touchUp); };
+      animationFrame = requestAnimationFrame(frame);
+    };
+    animationFrame = requestAnimationFrame(frame);
+    return () => { cancelAnimationFrame(animationFrame); clearInterval(musicTimerRef.current); clientRef.current?.disconnect(); audioRef.current?.close(); window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); window.removeEventListener("blur", clear); window.removeEventListener("pointerdown", touchDown); window.removeEventListener("pointerup", touchUp); window.removeEventListener("pointercancel", touchUp); };
   }, []);
 
   const startLocal = () => { matchRef.current = createMatch({ fighters: selected }); startMatch(matchRef.current); setView(structuredClone(matchRef.current)); setScreen("fight"); };
@@ -110,9 +140,15 @@ export function FightGame() {
   const reset = () => { matchRef.current = createMatch({ fighters: selected }); setView(structuredClone(matchRef.current)); setScreen("select"); };
   const connectOnline = (options) => {
     clientRef.current?.disconnect();
+    remoteFramesRef.current = [];
+    setInterpolatedRemote(null);
     const client = new MultiplayerClient(serverUrl, "street-fighter-ii", options);
     clientRef.current = client;
-    client.subscribe((state) => {
+    client.subscribe((state, event) => {
+      if (state.gameState && ["gameState", "snapshot", "presence"].includes(event)) {
+        remoteFramesRef.current.push({ time: performance.now(), state: state.gameState });
+        if (remoteFramesRef.current.length > 6) remoteFramesRef.current.shift();
+      }
       setOnlineState((old) => state.status === "reconnecting" ? { ...state, gameState: old.gameState } : { ...state });
       const serial = state.gameState?.event?.serial;
       if (serial !== undefined && serial !== lastNetworkEventRef.current) { lastNetworkEventRef.current = serial; if (audioOnRef.current) playSfx(); }
@@ -124,7 +160,7 @@ export function FightGame() {
     });
     void client.connect();
   };
-  const leaveOnline = () => { clientRef.current?.disconnect(); clientRef.current = null; setOnlineState({ status: "idle", players: [], gameState: null, sessionId: null, seat: null, code: "", error: "" }); setOnlinePaused(false); setScreen("menu"); };
+  const leaveOnline = () => { clientRef.current?.disconnect(); clientRef.current = null; remoteFramesRef.current = []; setInterpolatedRemote(null); setOnlineState({ status: "idle", players: [], gameState: null, sessionId: null, seat: null, code: "", error: "" }); setOnlinePaused(false); setScreen("menu"); };
   const shareInvite = async () => {
     if (!onlineState.code) return;
     const url = new URL(location.href); url.searchParams.set("room", onlineState.code);
@@ -167,6 +203,7 @@ export function FightGame() {
     }, 25);
   };
   const toggleAudio = async () => {
+    if (muteFromUrl) return;
     if (audioOn) { clearInterval(musicTimerRef.current); musicTimerRef.current = null; setAudioOn(false); }
     else { await startMusic(); setAudioOn(true); }
   };
@@ -181,15 +218,15 @@ export function FightGame() {
 
   const remote = onlineState.gameState;
   const shown = screen === "onlineFight" && remote?.fighters?.length === 2
-    ? { ...view, ...remote, players: remote.fighters, event: remote.event?.text || "", announcement: remote.event?.text || "" }
+    ? { ...view, ...remote, ...(interpolatedRemote ?? remote), players: (interpolatedRemote ?? remote).fighters, event: remote.event?.text || "", announcement: remote.event?.text || "" }
     : view;
   const playing = screen === "fight" || screen === "onlineFight";
   const lobbyPlayers = remote?.players || onlineState.players;
   const localSeat = lobbyPlayers.find((player) => player.id === onlineState.sessionId);
   const opponent = lobbyPlayers.find((player) => player.id !== onlineState.sessionId);
   const overlay = () => {
-    if (screen === "menu") return <div className="title-card"><p className="eyebrow">A NEW ARCADE DUEL</p><h1>WORLD<br/><em>WARRIORS</em></h1><p>Three fighters. One world championship.</p><button className="primary-button" onClick={() => setScreen("select")}>START GAME</button><div className="mode-actions"><button onClick={() => { setOnlineCode(""); setScreen("online"); }}>ONLINE DUEL</button><button onClick={toggleAudio}>{audioOn ? "SOUND OFF" : "SOUND ON"}</button></div>{audioOn && <label className="volume-control">MUSIC / EFFECTS <input aria-label="Music and effects volume" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.target.value))}/></label>}</div>;
-    if (screen === "select") return <div className="select-panel"><p className="eyebrow">CHOOSE YOUR WARRIOR</p><h2>SELECT FIGHTERS</h2><div className="fighter-cards">{Object.values(FIGHTERS).map((fighter) => <button key={fighter.id} className={`fighter-card ${selected.includes(fighter.id) ? "selected" : ""}`} onClick={() => setSelected((current) => current[0] === fighter.id ? [fighter.id, current[1]] : [current[0], fighter.id])}><div className="card-art" style={{ backgroundImage: `url(${fighterSheet})`, backgroundPosition: `50% ${({ ryu: 0, chunLi: 50, kaida: 100 })[fighter.id]}%` }}/><strong>{fighter.name}</strong><small>{fighter.role} · {fighter.title}</small></button>)}</div><div className="select-actions"><label>P1 <select value={selected[0]} onChange={(event) => setSelected((old) => [event.target.value, old[1]])}>{Object.values(FIGHTERS).map((fighter) => <option key={fighter.id} value={fighter.id}>{fighter.name}</option>)}</select></label><label>P2 <select value={selected[1]} onChange={(event) => setSelected((old) => [old[0], event.target.value])}>{Object.values(FIGHTERS).map((fighter) => <option key={fighter.id} value={fighter.id}>{fighter.name}</option>)}</select></label></div><button className="primary-button" onClick={startLocal}>FIGHT! — LOCAL 2 PLAYER</button><button className="back-button" onClick={() => setScreen("menu")}>BACK</button></div>;
+    if (screen === "menu") return <div className="title-card"><p className="eyebrow">A NEW ARCADE DUEL</p><h1>WORLD<br/><em>WARRIORS</em></h1><p>Three fighters. One world championship.</p><button className="primary-button" onClick={() => setScreen("select")}>START GAME</button><div className="mode-actions"><button onClick={() => { setOnlineCode(""); setScreen("online"); }}>ONLINE DUEL</button><button onClick={toggleAudio} disabled={muteFromUrl}>{muteFromUrl ? "MUTED BY URL" : audioOn ? "SOUND OFF" : "SOUND ON"}</button></div>{audioOn && !muteFromUrl && <label className="volume-control">MUSIC / EFFECTS <input aria-label="Music and effects volume" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.target.value))}/></label>}</div>;
+    if (screen === "select") return <div className="select-panel"><p className="eyebrow">CHOOSE YOUR WARRIOR</p><h2>SELECT FIGHTERS</h2><div className="fighter-cards">{Object.values(FIGHTERS).map((fighter) => <button key={fighter.id} className={`fighter-card ${selected.includes(fighter.id) ? "selected" : ""}`} onClick={() => setSelected((current) => current[0] === fighter.id ? [fighter.id, current[1]] : [current[0], fighter.id])}><div className="card-art" style={{ backgroundImage: `url(${fighterSheet})`, backgroundPosition: `50% ${({ ryu: 0, chunLi: 50, kaida: 100 })[fighter.id]}%` }}/><strong>{fighter.name}</strong><small>{fighter.role} · {fighter.title}</small></button>)}</div><div className="stage-select"><span>STAGE</span>{STAGES.map((stage) => <button key={stage.id} className={selectedStage === stage.id ? "selected" : ""} aria-pressed={selectedStage === stage.id} onClick={() => setSelectedStage(stage.id)}>{stage.name}</button>)}</div><div className="select-actions"><label>P1 <select value={selected[0]} onChange={(event) => setSelected((old) => [event.target.value, old[1]])}>{Object.values(FIGHTERS).map((fighter) => <option key={fighter.id} value={fighter.id}>{fighter.name}</option>)}</select></label><label>P2 <select value={selected[1]} onChange={(event) => setSelected((old) => [old[0], event.target.value])}>{Object.values(FIGHTERS).map((fighter) => <option key={fighter.id} value={fighter.id}>{fighter.name}</option>)}</select></label></div><button className="primary-button" onClick={startLocal}>FIGHT! — LOCAL 2 PLAYER</button><button className="back-button" onClick={() => setScreen("menu")}>BACK</button></div>;
     if (screen === "online") return <div className="online-panel"><p className="eyebrow">CHALLENGE A FRIEND</p><h2>ONLINE DUEL</h2><p>Invite codes connect two fighters in a server-hosted match.</p><div className="connection-status">{onlineState.error || (onlineState.status === "idle" ? "READY TO CONNECT" : onlineState.status.toUpperCase())}</div>{["idle", "error", "full"].includes(onlineState.status) ? <><input value={onlineCode} onChange={(event) => setOnlineCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))} placeholder="ROOM CODE" aria-label="Room code"/><button className="primary-button" onClick={() => connectOnline(onlineCode ? { code: onlineCode } : { create: true })}>{onlineCode ? "JOIN DUEL" : "CREATE INVITE"}</button></> : <><div className="room-code">{onlineState.code || "CONNECTING…"}</div>{onlineState.code && <button className="back-button" onClick={shareInvite}>COPY INVITE LINK</button>}<label className="online-select">YOUR FIGHTER <select value={onlineFighter} onChange={(event) => { setOnlineFighter(event.target.value); clientRef.current?.send("select", { fighter: event.target.value }); }}>{Object.values(FIGHTERS).map((fighter) => <option key={fighter.id} value={fighter.id}>{fighter.name}</option>)}</select></label><p>{opponent ? `Opponent: ${FIGHTERS[opponent.fighter]?.name || "Connected"}` : "Waiting for your opponent to join…"}</p><p>{localSeat?.ready ? "You are ready. Waiting for the other fighter…" : "Choose a fighter, then ready up."}</p><button className="primary-button" disabled={!opponent || remote?.phase !== "lobby"} onClick={() => clientRef.current?.send("ready", { ready: !localSeat?.ready })}>{localSeat?.ready ? "CANCEL READY" : "READY"}</button></>}<button className="back-button" onClick={leaveOnline}>LEAVE DUEL</button></div>;
     if (screen === "onlineFight" && shown.phase === "match-over") return <div className="round-announcement"><p>{shown.announcement}</p><button className="primary-button" onClick={() => clientRef.current?.send("rematch", { ready: true })}>READY FOR REMATCH</button><button className="back-button" onClick={leaveOnline}>LEAVE DUEL</button></div>;
     if (screen === "onlineFight" && shown.phase === "countdown") return <div className="round-announcement"><p>ROUND {shown.round} — GET READY</p><small>{Math.ceil(remote.countdown)}</small></div>;
@@ -202,10 +239,10 @@ export function FightGame() {
   };
 
   return <main className="fight-game" onPointerDown={playSfx}>
-    <Content />
+    <Content stageId={screen === "onlineFight" ? remote?.stage ?? selectedStage : selectedStage} />
     <header className="fight-hud"><section className="fighter-status"><strong>{FIGHTERS[shown.players[0].id].name}</strong><HealthBar value={shown.players[0].health} /><small>{FIGHTERS[shown.players[0].id].title}</small></section><div className="round-clock"><span>{String(Math.ceil(shown.time)).padStart(2, "0")}</span><small>ROUND {shown.round}</small></div><section className="fighter-status right"><strong>{FIGHTERS[shown.players[1].id].name}</strong><HealthBar value={shown.players[1].health} reverse /><small>{FIGHTERS[shown.players[1].id].title}</small></section></header>
     <div className="match-score"><span>{"● ".repeat(shown.wins[0])}</span><span>{"● ".repeat(shown.wins[1])}</span></div>
-    <section className="arena" aria-label="Fighting game arena"><div className="arena-sky"/><div className="arena-ground"/><div className="arena-floor"/>{shown.players.map((player, index) => <Fighter key={index} player={player} index={index} pose={shown.phase === "match-over" ? (shown.winner === `p${index + 1}` ? "victory" : "defeat") : player.hitFlash ? "hit" : player.guarding ? "block" : null} />)}
+    <section className="arena" aria-label="Fighting game arena"><div className="arena-sky"/>{shown.players.map((player, index) => <Fighter key={index} player={player} index={index} pose={shown.phase === "match-over" ? (shown.winner === `p${index + 1}` ? "victory" : "defeat") : player.hitFlash ? "hit" : player.guarding ? "block" : null} />)}{shown.players.map((player, index) => player.projectile && <span key={`projectile-${index}`} className={`projectile projectile-${player.id}`} style={{ left: `${player.projectile.x / 9.6}%`, bottom: `${28 + (520 - player.projectile.y) / 7.2}%` }} />)}
       {playing && shown.phase === "fight" && (screen === "onlineFight" || shown.eventUntil > shown.elapsed) && shown.event && <div className="impact-text">{shown.event}</div>}
       {(!playing || shown.phase !== "fight" || (screen === "fight" && shown.paused) || (screen === "onlineFight" && (onlinePaused || onlineState.status === "reconnecting"))) && <div className="game-overlay">{overlay()}</div>}
     </section>

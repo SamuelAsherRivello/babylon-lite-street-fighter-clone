@@ -18,16 +18,21 @@ import {
   stopEngine,
   updateSprite2D,
 } from "@babylonjs/lite";
-import stageUrl from "../../documentation/art/dojo-sunset-original.png?url";
-import { contentConfig, getRenderingPolicy, logicalResolution, pixelPerfectOptions, stageImageSize } from "./babylon/config.js";
+import dojoStageUrl from "../../documentation/art/dojo-sunset-original.png?url";
+import harborStageUrl from "../../documentation/art/harbor-market-original.png?url";
+import snowStageUrl from "../../documentation/art/snow-temple-original.png?url";
+import { contentConfig, getRenderingPolicy, logicalResolution, pixelPerfectOptions, stageImageSizes } from "./babylon/config.js";
 import { getInitializationMessage } from "./babylon/initialization.js";
 import { getLogicalToRenderScale } from "./babylon/pixel-perfect.js";
 import { createRenderTargetSurfaceView, getRenderResolutionDimensions } from "./babylon/render-resolution.js";
 import { useViewportInfo } from "../ui/ViewportInfoContext.jsx";
 
 const BACKGROUND = Object.freeze({ r: 0.09, g: 0.06, b: 0.1, a: 1 });
+const stageAssets = Object.freeze({ dojo: dojoStageUrl, harbor: harborStageUrl, snow: snowStageUrl });
 
-function PixelPerfectShowcase() {
+function PixelPerfectShowcase({ stageId }) {
+  const stageUrl = stageAssets[stageId] ?? dojoStageUrl;
+  const stageImageSize = stageImageSizes[stageId] ?? stageImageSizes.dojo;
   const { setScale, renderPreset, setRenderResolutionInfo, sceneBorderVisible, processingPaused } = useViewportInfo();
   const hostRef = useRef(null);
   const canvasRef = useRef(null);
@@ -222,7 +227,7 @@ function PixelPerfectShowcase() {
         layer = createSprite2DLayer(atlas, { pivot: [0.5, 0.5] });
         sprite = addSprite2D(layer, {
           positionPx: [0, 0],
-          sizePx: [logicalResolution.width, Math.round(logicalResolution.height * stageImageSize.width / stageImageSize.height)],
+          sizePx: [logicalResolution.width, Math.round(logicalResolution.width * stageImageSize.height / stageImageSize.width)],
           frame: 0,
         });
 
@@ -279,7 +284,7 @@ function PixelPerfectShowcase() {
       applyRenderResolutionRef.current = null;
       disposeResources();
     };
-  }, []);
+  }, [stageUrl, stageImageSize]);
 
   useEffect(() => {
     processingPausedRef.current = processingPaused;
@@ -304,7 +309,7 @@ function PixelPerfectShowcase() {
   );
 }
 
-export function Content() {
+export function Content({ stageId = "dojo" }) {
   const renderingPolicy = getRenderingPolicy(contentConfig);
   if (renderingPolicy === "performance-scaled-3d") {
     return (
@@ -317,6 +322,6 @@ export function Content() {
     return <div className="babylon_content babylon_content_message" role="status">Select Babylon Lite with 2D content or add the renderer-specific integration described in the guide.</div>;
   }
 
-  return <PixelPerfectShowcase />;
+  return <PixelPerfectShowcase stageId={stageId} />;
 }
 

@@ -180,20 +180,14 @@ export function App({ layout = defaultLayout, content = null, gutters = {} }) {
       </Corner>}
       {hudVisible && <Corner position="bottom_left">
         <section id="config" aria-labelledby="config_title">
-          <div id="config_title" className="corner-title">(C) Config</div>
-          {hudVisible && <label className="corner-body corner_option"><span>(F) Fullscreen</span><input id="fullscreen_toggle" type="checkbox" checked={fullscreenPreferred} onChange={toggleFullscreen} /></label>}
-          <label className="corner-body corner_option"><span>(H) HUD</span><input id="hud_checkbox" type="checkbox" checked={hudVisible} onChange={(event) => setHudVisible(event.target.checked)} /></label>
-          <button className="corner-body corner_option" type="button" onClick={resetLocalStorage}>(T) Reset Local Storage</button>
+          <button id="config_title" className="corner-title corner_option" type="button" onClick={() => setActiveDialog("config")}>⚙ Settings</button>
         </section>
       </Corner>}
       {hudVisible && <Corner position="bottom_right">
         <section id="stats" aria-labelledby="stats_title">
-          <div id="stats_title" className="corner-title">(V) Stats</div>
-          <div id="version" className="corner-body">v{versionNumber}</div>
-          <div className="corner-body">DPR: {devicePixelRatio}</div>
-          <div id="aspect_ratio" className="corner-body">{activeLayout.label ?? `${activeLayout.width}:${activeLayout.height}`} Aspect</div>
-          <div className="corner-body">{windowPixels.width}x{windowPixels.height} Window</div>
-          <div className="corner-body">{viewportPixels.width}x{viewportPixels.height} Viewport</div>
+          <button id="version" className="corner-body corner_option" type="button" aria-label={`Version ${versionNumber}. Open stats`} onClick={() => setActiveDialog("stats")}>v{versionNumber}</button>
+          <div id="stats_title" className="visually-hidden">Version and display statistics</div>
+          <div className="visually-hidden">DPR: {devicePixelRatio}</div>
         </section>
       </Corner>}
       {activeDialog && <Dialog title={activeDialog === "config" ? "Config" : activeDialog === "babylon" ? "Babylon Lite" : "Stats"} className={activeDialog === "babylon" ? "babylon_settings_dialog" : ""} onClose={() => setActiveDialog(null)}>

@@ -15,7 +15,16 @@ export const pixelPerfectOptions = Object.freeze({
 });
 
 export const logicalResolution = Object.freeze({ width: 960, height: 720 });
-export const stageImageSize = Object.freeze({ width: 1448, height: 1016 });
+export const STAGES = Object.freeze([
+  Object.freeze({ id: "dojo", name: "SUNSET DOJO" }),
+  Object.freeze({ id: "harbor", name: "HARBOR MARKET" }),
+  Object.freeze({ id: "snow", name: "SNOW TEMPLE" }),
+]);
+export const stageImageSizes = Object.freeze({
+  dojo: Object.freeze({ width: 1448, height: 1086 }),
+  harbor: Object.freeze({ width: 1497, height: 1051 }),
+  snow: Object.freeze({ width: 1496, height: 1051 }),
+});
 
 export function getRenderingPolicy({ renderer, style }) {
   if (renderer !== "babylon-lite") return "renderer-specific";

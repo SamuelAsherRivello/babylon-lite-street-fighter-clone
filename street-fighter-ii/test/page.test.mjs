@@ -32,7 +32,10 @@ test('preserves template corner roles and keeps keyboard controls in the game co
   assert.doesNotMatch(app, /Portrait|portrait_checkbox|key === "p"/);
   assert.match(main, /<StrictMode>/);
   assert.match(main, /FightGame/);
-  assert.match(game, /<Content\s*\/>/);
+  assert.match(game, /<Content stageId=\{/);
+  assert.match(game, /requestAnimationFrame\(frame\)/);
+  assert.match(game, /sampleGameState\(frames, now - 90\)/);
+  assert.match(game, /get\("mute"\) === "1"/);
   assert.match(game, /ArrowLeft/);
   assert.match(game, /pointercancel/);
   assert.match(agents, /four reusable `corner` instances/);

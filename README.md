@@ -52,6 +52,8 @@ A round lasts 99 seconds. A knockout wins the round; when time expires, the figh
 
 Direction for special moves is relative to the opponent. Back (away) also guards. Pressing any arrow key does not trigger a React shortcut.
 
+Use the menu's **Sound** control and volume slider for music and effects. Add `?mute=1` to the game URL to force fully silent mode for browser automation and playtesting; the sound control remains disabled in that mode.
+
 ### Gamepad and Touch
 
 Each connected gamepad uses its left stick or D-pad to move. Face buttons provide jump and punch, and the right-side buttons provide kick strengths. The same layout is available on the first gamepad during an online match. On narrow screens, use the on-screen directional pad and six attack buttons; hold more than one touch button at once for combined inputs. Releasing a touch or losing window focus clears held input.
@@ -78,11 +80,17 @@ Kaida is an original ember-comet martial artist with a counter-focused style. Sp
 
 ## Artwork and References
 
-All game artwork is original and generated for this project. The fighter sprite sheet includes Ryu, Chun-Li, and original character Kaida, with standing, moving, crouching, jumping, punch, kick, hit, and block poses. The dojo image is an original sunset stage. No game ROM, extracted arcade/SNES sprites, official logos, music, or sound effects are included. Arcade music and impact sounds are synthesized live in the browser from an original short note pattern; use **Sound** and the volume slider to control them.
+All game artwork is original and generated for this project. The fighter sprite sheet includes Ryu, Chun-Li, and original character Kaida, with standing, moving, crouching, jumping, punch, kick, hit, and block poses. The three original stages are Sunset Dojo, Harbor Market, and Snow Temple. Local players choose a stage before the match; online rooms derive one stable stage from the invite code so both clients display the same scene. No game ROM, extracted arcade/SNES sprites, official logos, music, or sound effects are included. Arcade music and impact sounds are synthesized live in the browser from an original short note pattern; use **Sound** and the volume slider to control them.
+
+![Local match in Chrome at desktop size](street-fighter-ii/documentation/screenshots/local-match-desktop.png)
 
 ![Original fighter sprite sheet](street-fighter-ii/documentation/art/fighters-original.png)
 
 ![Original sunset dojo stage](street-fighter-ii/documentation/art/dojo-sunset-original.png)
+
+![Original harbor market stage](street-fighter-ii/documentation/art/harbor-market-original.png)
+
+![Original snow temple stage](street-fighter-ii/documentation/art/snow-temple-original.png)
 
 Gameplay study: [playable SNES reference](https://www.retrogames.cz/play_304-SNES.php) and [Street Fighter II history and rules](https://en.wikipedia.org/wiki/Street_Fighter_II). Visual study: [Capcom's Street Fighter history](https://www.streetfighter.com/en/35th/history.html) and [Nintendo's SNES game page](https://www.nintendo.com/en-gb/Games/Super-Nintendo/Street-Fighter-II-The-World-Warrior-793127.html). These sources guide combat pacing, move identity, silhouette readability, HUD hierarchy, and stage atmosphere; they are not asset sources.
 
@@ -90,7 +98,8 @@ Gameplay study: [playable SNES reference](https://www.retrogames.cz/play_304-SNE
 
 - React/Vite UI and match presentation live in `street-fighter-ii/src/`.
 - Deterministic combat and fighter data are in `street-fighter-ii/src/game/` and are shared with the server release.
-- Babylon Lite 1.32.0 renders the authored stage through WebGPU. Textures use nearest sampling, clamp-to-edge, no mipmaps, and one MSAA sample. The DPR-aware canvas presents the full 960×720 logical match in a fixed landscape viewport.
+- Babylon Lite 1.32.0 renders the selected authored stage through WebGPU. Textures use nearest sampling, clamp-to-edge, no mipmaps, and one MSAA sample. The DPR-aware canvas presents the full 960×720 logical match in a fixed landscape viewport.
+- Local combat advances on a fixed 60 Hz simulation clock. Online fighters render between recent server snapshots with a short interpolation delay; health, hits, and round outcomes remain authoritative server values.
 - The app folder is `street-fighter-ii/`; Vite publishes its build from `street-fighter-ii/dist/` under the GitHub Pages repository path.
 - The version source is `version.txt`.
 - OpenSpec planning and implementation records are under `openspec/`.
