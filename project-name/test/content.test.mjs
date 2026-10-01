@@ -132,10 +132,12 @@ test('uses the requested corner title/body styles and ties the Lite border to th
   assert.match(styles, /\.babylon_scene_border[\s\S]*border: 5px solid orange/);
 });
 
-test('produces a clear WebGPU fallback and uses the engine-owned frame lifecycle', async () => {
+test('reports WebGPU-only initialization and allocation failures and uses the engine-owned frame lifecycle', async () => {
   assert.match(getInitializationMessage(false, new Error('unsupported')), /requires WebGPU/);
   assert.match(getInitializationMessage(true, new Error('WebGPU adapter not available')), /requires WebGPU/);
   assert.match(getInitializationMessage(true, new Error('texture decode failed')), /could not initialize/);
+  assert.match(getInitializationMessage(true, new Error('render target allocation failed')), /could not allocate the selected render resolution/);
+  assert.match(getInitializationMessage(true, new Error('GPU out of memory while allocating texture')), /could not allocate the selected render resolution/);
 
   const [content, main] = await Promise.all([
     readFile(new URL('../src/content/Content.jsx', import.meta.url), 'utf8'),
@@ -154,7 +156,12 @@ test('produces a clear WebGPU fallback and uses the engine-owned frame lifecycle
     /disposeSpriteAnimationBinding\(animationBinding\)/,
   ]) assert.match(content, expression);
   assert.match(content, /await createEngine\(canvas, pixelPerfectOptions\.engine\)/);
+  assert.match(content, /queueMicrotask\(\(\) => \{\s*if \(!cancelled\) void setup\(\);\s*\}\)/);
+  assert.match(content, /if \(!navigator\.gpu\) throw new Error\("WebGPU is not available in this browser\."\)/);
+  assert.match(content, /setMessage\(getInitializationMessage\(Boolean\(navigator\.gpu\), error\)\)/);
+  assert.doesNotMatch(content, /\.getContext\(["'](?:2d|webgl2?)["']/i);
   assert.match(content, /await startEngine\(engine\)/);
+  assert.match(content, /await startEngine\(engine\);\s*\/\/ StrictMode can unmount this effect while the first async engine start[\s\S]*?if \(cancelled\) return;/);
 });
 
 test('imports an original 32x32 hard-edged PNG with only black and gray pixels', async () => {

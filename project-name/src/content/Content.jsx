@@ -267,6 +267,10 @@ function PixelPerfectShowcase() {
         updateRenderResolution();
 
         await startEngine(engine);
+        // StrictMode can unmount this effect while the first async engine start
+        // is pending. Let finally dispose the engine without registering fresh
+        // listeners or observers after cleanup has already run.
+        if (cancelled) return;
         if (failed) throw new Error("Babylon Lite render-resolution setup failed.");
         engineReadyRef.current = true;
         engineRunningRef.current = true;
@@ -289,7 +293,12 @@ function PixelPerfectShowcase() {
       }
     };
 
-    void setup();
+    // Let StrictMode's immediate setup/cleanup probe finish before touching the
+    // canvas. A cancelled probe must not asynchronously create an engine that can
+    // unconfigure the canvas context owned by the surviving mount.
+    queueMicrotask(() => {
+      if (!cancelled) void setup();
+    });
     return () => {
       cancelled = true;
       resizeObserver?.disconnect();
