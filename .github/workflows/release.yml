@@ -25,7 +25,7 @@ jobs:
           node-version: 24
       - name: Install dependencies
         run: npm ci
-      - name: Test template
+      - name: Test game
         run: npm test
       - name: Bump patch version
         id: version
@@ -51,3 +51,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.value }}
         run: gh release create "v$VERSION" --generate-notes --title "v$VERSION"
+
+

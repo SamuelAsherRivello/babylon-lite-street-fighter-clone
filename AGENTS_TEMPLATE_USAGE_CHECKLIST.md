@@ -41,10 +41,10 @@ copy:
 - [ ] For GitHub creation, verify `origin` points to the new project repository
       before pushing. For a local-only copy, do not invent or configure a
       remote.
-- [ ] Rename `project-name/`, update the Vite `root` setting, and replace
-      `{project-name}`, `{github-owner}`, and `{repository-name}` with confirmed
+- [ ] Rename `street-fighter-ii/`, update the Vite `root` setting, and replace
+      `Street Fighter II Clone`, `SamuelAsherRivello`, and `babylon-lite-street-fighter-clone` with confirmed
       metadata before adding project-specific implementation.
-- [ ] Rename the README H1 (`# {project-name}`) and replace introduction,
+- [ ] Rename the README H1 (`# Street Fighter II Clone`) and replace introduction,
       getting-started, and project-details placeholders with concise, verified
       project information.
 - [ ] When the destination is on GitHub and settings are accessible, set its
@@ -78,7 +78,7 @@ the template are not evidence that a command exists in the new project.
       README. Do not document a command unless it exists and its configuration
       has been inspected.
 - [ ] Update `.gitignore` for generated outputs, local state, and secrets. Keep
-      the `node_modules/` and `project-name/dist/` exclusions if Node/Vite
+      the `node_modules/` and `street-fighter-ii/dist/` exclusions if Node/Vite
       remains.
 - [ ] Add a safe `.env.example` only if configuration is required; include no
       real credentials.
@@ -118,9 +118,9 @@ Perform this section only when OpenSpec is selected for the resulting project.
 
 ## 5. Delivery gate and summary
 
-- [ ] Search for `project-name`, `{github-owner}`, `{repository-name}`,
+- [ ] Search for `project-name`, `SamuelAsherRivello`, `babylon-lite-street-fighter-clone`,
       `{command}`, `{live-demo-url}`, `{demo_url}`,
-      `github-repository-template`, `GitHub Repository Template`, and other
+      `babylon-lite-street-fighter-clone`, `GitHub Repository Template`, and other
       template placeholders. Resolve or deliberately retain each occurrence
       with a documented reason.
 - [ ] Run each applicable, documented local setup, test, build, and formatting
@@ -144,7 +144,7 @@ Answer each question **true** or **false** based on evidence in the resulting
 project. Award **+1 point for each true answer** (maximum 10 points).
 
 - [ ] Is the project purpose reflected in a renamed app folder instead of
-      leaving `project-name/` as the final application name?
+      leaving `street-fighter-ii/` as the final application name?
 - [ ] Does the Vite configuration point to the resulting app folder?
 - [ ] Have the project-name, owner, and repository placeholders been replaced
       with confirmed values wherever applicable?
@@ -162,3 +162,4 @@ project. Award **+1 point for each true answer** (maximum 10 points).
       local state while retaining relevant template exclusions?
 - [ ] Are applicable checks and user-visible behavior verified, with any
       blocked or unverified items clearly reported?
+

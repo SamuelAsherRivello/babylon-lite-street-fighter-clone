@@ -1,15 +1,16 @@
 {
-  "name": "github-repository-template",
+  "name": "babylon-lite-street-fighter-clone",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test --test-isolation=none project-name/test/page.test.mjs project-name/test/content.test.mjs project-name/test/openspec-skills.test.mjs"
+    "test": "node --test --test-isolation=none street-fighter-ii/test/page.test.mjs street-fighter-ii/test/content.test.mjs street-fighter-ii/test/openspec-skills.test.mjs street-fighter-ii/test/combat.test.mjs"
   },
   "dependencies": {
     "@babylonjs/lite": "1.32.0",
+    "@rmc/multiplayer-client": "file:../server/multiplayer-server/packages/client",
     "@vitejs/plugin-react": "^6.1.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"

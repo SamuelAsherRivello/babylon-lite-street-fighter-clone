@@ -6,12 +6,14 @@ import { defineConfig } from "vite";
 const repositoryRoot = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  base: "/github-repository-template/",
+  base: "/babylon-lite-street-fighter-clone/",
   plugins: [react()],
-  root: "project-name",
+  root: "street-fighter-ii",
   server: {
     fs: {
       allow: [repositoryRoot],
     },
   },
 });
+
+

@@ -32,10 +32,10 @@ only by that content; update the lockfile after dependency changes.
   configuration, and repository metadata. Run Git, dependency, build, test,
   and run commands from this root unless the resulting project's inspected
   configuration says otherwise.
-- `project-name/` is the Vite application root. Keep app source, tests, and
+- `street-fighter-ii/` is the Vite application root. Keep app source, tests, and
   assets there unless the chosen stack deliberately changes the layout.
-- Project documentation assets belong in `project-name/documentation/`.
-- Keep `project-name/` as the Vite root and synchronize the GitHub repository
+- Project documentation assets belong in `street-fighter-ii/documentation/`.
+- Keep `street-fighter-ii/` as the Vite root and synchronize the GitHub repository
   URL with the resulting project repository when this template baseline is
   retained.
 
@@ -77,3 +77,4 @@ Do not hand-edit generated OpenSpec skills.
 Do not create a pull request unless the user explicitly asks for one in the
 current request. A push, commit, or completed template/OpenSpec workflow does
 not imply approval to create a pull request.
+

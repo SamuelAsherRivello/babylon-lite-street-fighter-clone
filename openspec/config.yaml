@@ -1,17 +1,24 @@
 schema: spec-driven
 context: |
-  Repository: github-repository-template, a reusable browser app/game template.
-  React and React DOM run through Vite with its React plugin. The repository
-  root is the npm root; project-name/ is the Vite application/source/test root.
-  Shared layout uses CSS pixels and a project-defined aspect-ratio viewport.
-  No game renderer is installed; engine guidance is comments/documentation only.
-  Add no runtime dependency without a concrete project requirement.
-  Preserve protected external links, version.txt sourcing, and fullscreen storage.
-  Commands from the repository root: npm ci, npm run dev, npm test, npm run build.
-  GitHub Pages uses /github-repository-template/ and project-name/dist/.
-  Canonical project documentation assets live in project-name/documentation/.
-  The template preserves only .agents/skills/.openspec-target; do not bundle
-  or hand-edit generated OpenSpec skills. Do not create a PR unless requested.
+  Repository: SamuelAsherRivello/babylon-lite-street-fighter-clone, a React/Vite
+  browser fighting game using @babylonjs/lite 1.32.0 and WebGPU.
+  Repository root is the npm root; street-fighter-ii/ is the Vite app, source,
+  tests, canonical documentation assets, and production build root.
+  Use a 4:3 landscape playfield with Babylon Lite's DPR-aware canvas and the
+  template's nearest-filtered, no-mipmap, msaaSamples:1 pixel-art path. The
+  app owns simulation and input; React owns menus/HUD; online outcomes must be
+  server-authoritative through the shared Colyseus server.
+  Commands from repository root: npm ci, npm run dev, npm test, npm run build.
+  GitHub Pages base is /babylon-lite-street-fighter-clone/ and publishes
+  street-fighter-ii/dist/. Version source is version.txt.
+  Shared server checkout is ../server at revision d590b1bd9fe3dbb56302fed120477821e41c9b8e,
+  latest released contract is 0.7.0; it currently creates coded private rooms
+  for Gungeon but reconnect creates a fresh identity. Server runs Node 24.x,
+  in-memory state on Vercel Hobby with possible cross-instance routing gaps and
+  resets around its function-duration limit. Do not claim durable sessions.
+  OpenSpec CLI and generated skills are pinned to 1.13.1. Preserve generated
+  skills and template corner roles, version source, fullscreen storage, and
+  protected links. No pull request unless requested.
 rules:
   proposal:
     - Mark unresolved decisions clearly; recommendations are not approvals.
