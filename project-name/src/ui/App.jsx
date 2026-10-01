@@ -3,9 +3,28 @@ import versionText from "../../../version.txt?raw";
 import { BrowserSurface } from "./BrowserSurface.jsx";
 import { aspectRatioPresets, defaultLayout } from "./layout.js";
 import { Dialog } from "./Dialog.jsx";
+import { getScaleDisplayText } from "../content/babylon/showcase-overlay.js";
+import { ViewportInfoContext } from "./ViewportInfoContext.jsx";
 
+const configStorageKey = "github-repository-template.config";
 const fullscreenStorageKey = "github-repository-template.fullscreen";
+const defaultConfig = Object.freeze({ fullscreen: false, orientation: null, hudVisible: true });
 const repositoryUrl = "https://github.com/SamuelAsherRivello/github-repository-template";
+
+function readConfig() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(configStorageKey) ?? "null");
+    return {
+      fullscreen: typeof saved?.fullscreen === "boolean"
+        ? saved.fullscreen
+        : localStorage.getItem(fullscreenStorageKey) === "true",
+      orientation: saved?.orientation === "portrait" || saved?.orientation === "landscape" ? saved.orientation : defaultConfig.orientation,
+      hudVisible: typeof saved?.hudVisible === "boolean" ? saved.hudVisible : defaultConfig.hudVisible,
+    };
+  } catch {
+    return defaultConfig;
+  }
+}
 
 export function Corner({ position, children }) {
   return <div className={`corner corner_${position}`}>{children}</div>;
@@ -20,7 +39,10 @@ function GitHubMark() {
 }
 
 export function App({ layout = defaultLayout, content = null, gutters = {} }) {
-  const [orientationOverride, setOrientationOverride] = useState(null);
+  const [config, setConfig] = useState(readConfig);
+  const { orientation: orientationOverride, hudVisible } = config;
+  const setOrientationOverride = (orientation) => setConfig((current) => ({ ...current, orientation }));
+  const setHudVisible = (hudVisible) => setConfig((current) => ({ ...current, hudVisible }));
   const landscape = (orientationOverride ?? layout.orientation) === "landscape";
   const portrait = !landscape;
   const activeLayout = orientationOverride === null ? layout : {
@@ -28,14 +50,12 @@ export function App({ layout = defaultLayout, content = null, gutters = {} }) {
     orientation: orientationOverride,
     ...aspectRatioPresets[orientationOverride],
   };
-  const [fullscreenPreferred, setFullscreenPreferred] = useState(() => {
-    return localStorage.getItem(fullscreenStorageKey) === "true";
-  });
+  const fullscreenPreferred = config.fullscreen;
   const [viewportPixels, setViewportPixels] = useState({ width: 0, height: 0 });
   const [windowPixels, setWindowPixels] = useState({ width: window.innerWidth, height: window.innerHeight });
   const [devicePixelRatio, setDevicePixelRatio] = useState(window.devicePixelRatio);
-  const [hudVisible, setHudVisible] = useState(true);
   const [activeDialog, setActiveDialog] = useState(null);
+  const [pixelPerfectScale, setPixelPerfectScale] = useState(2);
   const updateViewportPixels = useCallback((rect) => {
     setViewportPixels((current) => {
       const next = { width: Math.round(rect.width), height: Math.round(rect.height) };
@@ -59,10 +79,12 @@ export function App({ layout = defaultLayout, content = null, gutters = {} }) {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
       const key = event.key.toLowerCase();
       if (key === "f") toggleFullscreen();
-      if (key === "p") setOrientationOverride((current) => current === "portrait" ? "landscape" : "portrait");
-      if (key === "h") setHudVisible((visible) => !visible);
+      if (key === "p") setConfig((current) => ({ ...current, orientation: current.orientation === "portrait" ? "landscape" : "portrait" }));
+      if (key === "h") setConfig((current) => ({ ...current, hudVisible: !current.hudVisible }));
+      if (key === "t") resetLocalStorage();
       if (key === "c") setActiveDialog((dialog) => dialog === "config" ? null : "config");
-      if (key === "i") setActiveDialog((dialog) => dialog === "stats" ? null : "stats");
+      if (key === "v") setActiveDialog((dialog) => dialog === "stats" ? null : "stats");
+      if (key === "b") setActiveDialog((dialog) => dialog === "babylon" ? null : "babylon");
       if (event.key === "Escape") setActiveDialog(null);
     };
     window.addEventListener("keydown", handleShortcut);
@@ -70,17 +92,22 @@ export function App({ layout = defaultLayout, content = null, gutters = {} }) {
   });
 
   useEffect(() => {
-    localStorage.setItem(fullscreenStorageKey, fullscreenPreferred ? "true" : "false");
-  }, [fullscreenPreferred]);
+    try {
+      localStorage.setItem(configStorageKey, JSON.stringify(config));
+      localStorage.setItem(fullscreenStorageKey, config.fullscreen ? "true" : "false");
+    } catch {
+      // Keep the in-memory React settings usable when browser storage is unavailable.
+    }
+  }, [config]);
 
   useEffect(() => {
     const syncFullscreenState = () => {
-      setFullscreenPreferred(Boolean(document.fullscreenElement));
+      setConfig((current) => ({ ...current, fullscreen: Boolean(document.fullscreenElement) }));
     };
 
     document.addEventListener("fullscreenchange", syncFullscreenState);
     return () => document.removeEventListener("fullscreenchange", syncFullscreenState);
-  }, []);
+  }, [config.fullscreen]);
 
   const toggleFullscreen = async () => {
     try {
@@ -91,51 +118,75 @@ export function App({ layout = defaultLayout, content = null, gutters = {} }) {
       } else if (document.documentElement.requestFullscreen) {
         await document.documentElement.requestFullscreen();
         if (!document.fullscreenElement) {
-          setFullscreenPreferred(true);
+          setConfig((current) => ({ ...current, fullscreen: true }));
         }
       }
     } catch {
-      setFullscreenPreferred(false);
+      setConfig((current) => ({ ...current, fullscreen: false }));
     }
   };
 
+  const resetLocalStorage = () => {
+    try {
+      localStorage.clear();
+    } catch {
+      // The React settings can still reset if browser storage is unavailable.
+    }
+    window.location.reload();
+  };
+
   return (
+    <ViewportInfoContext.Provider value={{
+      scale: pixelPerfectScale,
+      setScale: setPixelPerfectScale,
+      sceneBorderVisible: activeDialog === "babylon",
+      processingPaused: activeDialog !== null,
+    }}>
     <BrowserSurface layout={activeLayout} gutters={gutters} onViewportResize={updateViewportPixels} ui={<>
+      {hudVisible && <div className="babylon_viewport_info" aria-label="Babylon Lite viewport settings">
+        <div className="corner-title"><button className="babylon_viewport_info_button" type="button" onClick={() => setActiveDialog("babylon")} aria-label="Open Babylon Lite settings">(B)</button> Babylon Lite</div>
+        <div className="corner-body">{getScaleDisplayText(pixelPerfectScale)}</div>
+        <div className="corner-body">Mode: 2DPixelPerfect</div>
+      </div>}
       {hudVisible && <Corner position="top_left">
-        <div id="project_title" className="corner_body">
+        <div id="project_title" className="corner-body">
           GitHub Repository Template
         </div>
       </Corner>}
       {hudVisible && <Corner position="top_right">
-        <a href={repositoryUrl} target="_blank" rel="noopener noreferrer" aria-label="View the repository on GitHub" tabIndex={-1}>
+        <a className="corner-body" href={repositoryUrl} target="_blank" rel="noopener noreferrer" aria-label="View the repository on GitHub" tabIndex={-1}>
           <GitHubMark />
         </a>
       </Corner>}
       {hudVisible && <Corner position="bottom_left">
         <section id="config" aria-labelledby="config_title">
-          <div id="config_title" className="corner_title">(C) Config</div>
-          {hudVisible && <label className="corner_body corner_option"><span>(F) Fullscreen</span><input id="fullscreen_toggle" type="checkbox" checked={fullscreenPreferred} onChange={toggleFullscreen} /></label>}
-          {hudVisible && <label className="corner_body corner_option"><span>(P) Portrait</span><input id="portrait_checkbox" type="checkbox" checked={portrait} onChange={(event) => setOrientationOverride(event.target.checked ? "portrait" : "landscape")} /></label>}
-          <label className="corner_body corner_option"><span>(H) HUD</span><input id="hud_checkbox" type="checkbox" checked={hudVisible} onChange={(event) => setHudVisible(event.target.checked)} /></label>
+          <div id="config_title" className="corner-title">(C) Config</div>
+          {hudVisible && <label className="corner-body corner_option"><span>(F) Fullscreen</span><input id="fullscreen_toggle" type="checkbox" checked={fullscreenPreferred} onChange={toggleFullscreen} /></label>}
+          {hudVisible && <label className="corner-body corner_option"><span>(P) Portrait</span><input id="portrait_checkbox" type="checkbox" checked={portrait} onChange={(event) => setOrientationOverride(event.target.checked ? "portrait" : "landscape")} /></label>}
+          <label className="corner-body corner_option"><span>(H) HUD</span><input id="hud_checkbox" type="checkbox" checked={hudVisible} onChange={(event) => setHudVisible(event.target.checked)} /></label>
+          <button className="corner-body corner_option" type="button" onClick={resetLocalStorage}>(T) Reset Local Storage</button>
         </section>
       </Corner>}
       {hudVisible && <Corner position="bottom_right">
         <section id="stats" aria-labelledby="stats_title">
-          <div id="stats_title" className="corner_title">(I) Stats</div>
-          <div id="version" className="corner_body">v{versionNumber}</div>
-          <div className="corner_body">DPR: {devicePixelRatio}</div>
-          <div id="aspect_ratio" className="corner_body">{activeLayout.label ?? `${activeLayout.width}:${activeLayout.height}`} Aspect</div>
-          <div className="corner_body">{windowPixels.width}x{windowPixels.height} Window</div>
-          <div className="corner_body">{viewportPixels.width}x{viewportPixels.height} Viewport</div>
+          <div id="stats_title" className="corner-title">(V) Stats</div>
+          <div id="version" className="corner-body">v{versionNumber}</div>
+          <div className="corner-body">DPR: {devicePixelRatio}</div>
+          <div id="aspect_ratio" className="corner-body">{activeLayout.label ?? `${activeLayout.width}:${activeLayout.height}`} Aspect</div>
+          <div className="corner-body">{windowPixels.width}x{windowPixels.height} Window</div>
+          <div className="corner-body">{viewportPixels.width}x{viewportPixels.height} Viewport</div>
         </section>
       </Corner>}
-      {activeDialog && <Dialog title={activeDialog === "config" ? "Config" : "Stats"} onClose={() => setActiveDialog(null)}>
-          {activeDialog === "config" ? <div className="dialog_options">
+      {activeDialog && <Dialog title={activeDialog === "config" ? "Config" : activeDialog === "babylon" ? "Babylon Lite" : "Stats"} className={activeDialog === "babylon" ? "babylon_settings_dialog" : ""} onClose={() => setActiveDialog(null)}>
+          {activeDialog === "babylon" ? <div className="dialog_options babylon_settings"><div>Babylon Lite</div><div>{getScaleDisplayText(pixelPerfectScale)}</div><div>Mode: 2DPixelPerfect</div></div>
+            : activeDialog === "config" ? <div className="dialog_options">
             <label className="dialog_option"><span>(F) Fullscreen</span><input type="checkbox" checked={fullscreenPreferred} onChange={toggleFullscreen} /></label>
             <label className="dialog_option"><span>(P) Portrait</span><input type="checkbox" checked={portrait} onChange={(event) => setOrientationOverride(event.target.checked ? "portrait" : "landscape")} /></label>
             <label className="dialog_option"><span>(H) HUD</span><input type="checkbox" checked={hudVisible} onChange={(event) => setHudVisible(event.target.checked)} /></label>
+            <button type="button" onClick={resetLocalStorage}>(T) Reset Local Storage</button>
           </div> : <div className="dialog_options"><div>v{versionNumber}</div><div>DPR: {devicePixelRatio}</div><div>{activeLayout.label ?? `${activeLayout.width}:${activeLayout.height}`} Aspect</div><div>{windowPixels.width}x{windowPixels.height} Window</div><div>{viewportPixels.width}x{viewportPixels.height} Viewport</div></div>}
       </Dialog>}
     </>}>{content}</BrowserSurface>
+    </ViewportInfoContext.Provider>
   );
 }

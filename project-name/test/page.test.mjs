@@ -27,7 +27,7 @@ test('invalid dimensions and orientation give actionable errors', () => {
   assert.throws(() => fitViewport(-1,900,defaultLayout), /nonnegative CSS/);
   assert.deepEqual(fitViewport(0,0,defaultLayout), {width:0,height:0,x:0,y:0});
 });
-test('preserves corner contracts and renderer-free guidance', async () => {
+test('preserves corner contracts and Babylon Lite content-layer guidance', async () => {
   const read = name => readFile(new URL('../'+name,import.meta.url),'utf8');
   const [app,surface,main,html,guide] = await Promise.all([read('src/ui/App.jsx'),read('src/ui/BrowserSurface.jsx'),read('src/main.jsx'),read('index.html'),read('documentation/layout-and-game-integration.md')]);
   assert.ok(main.includes('getElementById("root")'));
@@ -37,7 +37,8 @@ test('preserves corner contracts and renderer-free guidance', async () => {
   assert.match(app,/versionText.*trim/);
   assert.match(app,/noopener noreferrer/);
   assert.match(app,/github-repository-template.fullscreen/);
-  assert.match(surface,/Babylon Lite/);
+  assert.match(surface,/Babylon Lite content mounts here/);
+  assert.doesNotMatch(surface,/future Babylon Lite integration/i);
   for (const term of ['Logical resolution','Internal render resolution','Canvas backing resolution','Display size','CSS size','fractional','StrictMode']) assert.ok(guide.includes(term));
   assert.doesNotMatch(surface,/import.*babylon/i);
 });
@@ -50,6 +51,8 @@ test('keeps the UI and content source boundaries discoverable', async () => {
     read('documentation/coding-standards.md'),
   ]);
   assert.match(main, /\.\/ui\/App\.jsx/);
+  assert.match(main, /\.\/content\/Content\.jsx/);
+  assert.match(main, /<App content=\{<Content \/>\} \/>/);
   assert.match(template, /export function Template/);
   assert.match(content, /export function Content/);
   assert.match(standards, /src\/ui\//);

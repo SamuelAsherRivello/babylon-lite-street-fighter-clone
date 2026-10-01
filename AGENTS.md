@@ -20,6 +20,12 @@ any mismatch between the requested mode and repository configuration before
 copying or creating a destination. Do not treat reference-only use as permission
 to copy.
 
+When establishing a new project, determine whether the user wants a game or an
+app. For a game, keep the Babylon content and dependencies as the starting
+point and adapt them to the requested game. For an app, remove Babylon content
+and dependencies, along with associated imports, tests, assets, and docs used
+only by that content; update the lockfile after dependency changes.
+
 ## Repository and application layout
 
 - The repository root is the npm project root and contains `.git`, package
@@ -40,6 +46,10 @@ to copy.
   longer used.
 - When changing React UI, check that its JSX class names and IDs match the
   styles, and remove obsolete selectors left behind by the change.
+- The page structure supports keeping the full HUD visible inside the viewport
+  during fullscreen. Gutters are not visible in fullscreen, so custom gutter UI
+  may be added only as secondary UI. Keep all primary UI in React and within
+  the viewport.
 
 ## HTML template corner roles
 
@@ -50,6 +60,9 @@ The default HTML template uses four reusable `corner` instances inside
 - Upper right: project links.
 - Lower right: project version.
 - Lower left: project settings.
+
+Format content in each corner using either the menu title style or the menu
+body style. Represent boolean settings with checkboxes.
 
 ## OpenSpec setup
 

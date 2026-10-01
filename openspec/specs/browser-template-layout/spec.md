@@ -41,9 +41,13 @@ Browser, viewport, gutter, and UI dimensions SHALL use CSS pixels without multip
 - **WHEN** the same CSS surface size is displayed at DPR 1, 1.25, and 2
 - **THEN** viewport dimensions and corner placement remain equivalent in CSS pixels
 
-### Requirement: Renderer-free starter
-The starter SHALL support React app content and an optional future game integration location without installed engine dependencies, engine imports, an engine example, active renderer diagnostics, or inactive renderer controls.
+### Requirement: Content renderer preserves browser layout
+The starter SHALL allow a game renderer to run inside the viewport content layer beneath the existing UI overlay. Renderer backing resolution and game scaling SHALL NOT change CSS viewport, gutter, or UI geometry. The renderer SHALL not intercept input in UI corner controls.
 
-#### Scenario: Default startup
-- **WHEN** the template starts before any renderer is integrated
-- **THEN** the layout and fullscreen controls work without engine setup or renderer settings
+#### Scenario: Renderer and UI composition
+- **WHEN** the Babylon Lite content scene is running inside the viewport
+- **THEN** it fills the content layer beneath the UI, and the viewport ratio, external gutters, four corner roles, and UI CSS geometry remain unchanged
+
+#### Scenario: Corner interaction above content
+- **WHEN** a user operates a corner control while game content is rendered underneath
+- **THEN** the control remains reachable and renderer interaction does not prevent the control action

@@ -11,6 +11,12 @@ reference-only requests, follow `AGENTS.md` and do not copy files.
       stack, deployment target, dependency policy, and whether OpenSpec is
       required. Ask only for material facts that are neither provided nor
       discoverable from the project.
+- [ ] Decide whether the resulting project is a **game** or an **app**. For a
+      game, retain the Babylon content and Babylon dependencies as the starting
+      point, adapting them to the requested game. For an app, remove Babylon
+      content and Babylon dependencies, including associated imports, tests,
+      assets, and documentation that exist only for that content. Update the
+      lockfile after dependency changes.
 - [ ] For GitHub creation, use GitHub's **Use this template** flow when the user
       has authorized creating the destination. For a local copy, require an
       explicitly named destination and copy tracked files without `.git`,
@@ -131,3 +137,28 @@ Perform this section only when OpenSpec is selected for the resulting project.
 - [ ] Call the project ready only when all applicable local checks pass and
       every remaining external or unverified item is clearly disclosed. Do not
       imply that a blocked or pending action was completed.
+
+## 6. Template-use scorecard
+
+Answer each question **true** or **false** based on evidence in the resulting
+project. Award **+1 point for each true answer** (maximum 10 points).
+
+- [ ] Is the project purpose reflected in a renamed app folder instead of
+      leaving `project-name/` as the final application name?
+- [ ] Does the Vite configuration point to the resulting app folder?
+- [ ] Have the project-name, owner, and repository placeholders been replaced
+      with confirmed values wherever applicable?
+- [ ] Does the README describe the actual project rather than the generic
+      template?
+- [ ] Are setup, run, test, and build instructions based on commands that
+      exist in the resulting project?
+- [ ] Have template demo links, images, packages, and release instructions
+      been removed or adapted to the resulting project?
+- [ ] Does the app preserve or deliberately adapt the four HTML corner roles
+      documented in `AGENTS.md`?
+- [ ] Are React UI shortcuts kept clear of WASD, the arrow keys, Spacebar, and
+      Enter, with assigned keys shown in the UI?
+- [ ] Does `.gitignore` cover the resulting project's generated files and
+      local state while retaining relevant template exclusions?
+- [ ] Are applicable checks and user-visible behavior verified, with any
+      blocked or unverified items clearly reported?

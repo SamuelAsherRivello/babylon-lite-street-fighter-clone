@@ -46,11 +46,10 @@ export function BrowserSurface({ layout = defaultLayout, children, ui, gutters =
           <div key={side} className={`gutter gutter_${side}`} style={style}>{gutters[side]}</div>
         ))}
         <div id="viewport" data-orientation={layout.orientation} style={{ ...rectangle(viewport.x, viewport.y, viewport.width, viewport.height), "--project-viewport-width": `${viewport.width}px`, "--project-viewport-height": `${viewport.height}px` }}>
-          {/* React app content belongs here. A future Babylon Lite integration can mount a canvas
-              in this layer, initialize/resize/dispose its renderer using React lifecycle, and
-              clean up correctly on StrictMode remounts. Camera, texture filtering/mipmaps,
-              anti-aliasing and DPR-aware backing size are renderer responsibilities.
-              See documentation/layout-and-game-integration.md for policies and diagnostics. */}
+          {/* Babylon Lite content mounts here beneath the independent UI layer. Its renderer
+              owns a DPR-aware backing buffer while this viewport stays in CSS pixels. The
+              2D preset uses nearest filtering, no mipmaps, and no MSAA. See the integration
+              guide for lifecycle, resize, WebGPU, 2D, and separate 3D policy details. */}
           <div id="content_layer">{children}</div>
           <div id="ui_layer">{ui}</div>
         </div>
