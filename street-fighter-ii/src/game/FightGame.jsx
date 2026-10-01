@@ -39,9 +39,10 @@ function readGamepad(index, facing) {
 
 function Fighter({ player, index, pose }) {
   const row = ({ ryu: 0, chunLi: 1, kaida: 2 })[player.id] ?? 0;
-  const attackFrames = { lightPunch: 4, mediumPunch: 5, heavyPunch: 6, lightKick: 7, mediumKick: 8, heavyKick: 9 };
-  const frame = pose === "hit" || pose === "defeat" ? 10 : pose === "block" ? 11 : pose === "victory" || player.airborne ? 3 : player.attack ? attackFrames[player.attack.type] ?? (player.attack.pose === "kick" ? 9 : 6) : player.crouching ? 2 : player.vx ? 1 : 0;
-  return <div className={`fighter fighter-${index + 1} ${player.hitFlash ? "is-hit" : ""} ${player.guarding ? "is-blocking" : ""}`} style={{ left: `${player.x / 9.6}%`, bottom: `${18 + (520 - player.y) / 7.2}%`, "--fighter-color": FIGHTERS[player.id].color, "--fighter-trim": FIGHTERS[player.id].trim, "--sheet-x": `${frame * 100 / 11}%`, "--sheet-y": `${row * 50}%`, transform: `translateX(-50%) scaleX(${player.facing < 0 ? -1 : 1})` }} aria-label={FIGHTERS[player.id].name}>
+  const frame = pose === "hit" || pose === "defeat" ? 6 : pose === "block" ? 7 : pose === "victory" || player.airborne ? 3 : player.attack ? (player.attack.pose === "kick" ? 5 : 4) : player.crouching ? 2 : player.vx ? 1 : 0;
+  const strength = player.attack?.type.startsWith("light") ? "light" : player.attack?.type.startsWith("medium") ? "medium" : "heavy";
+  const attackClass = player.attack ? `is-attacking attack-${player.attack.pose} attack-${strength}` : "";
+  return <div className={`fighter fighter-${index + 1} ${attackClass} ${player.hitFlash ? "is-hit" : ""} ${player.guarding ? "is-blocking" : ""}`} style={{ left: `${player.x / 9.6}%`, bottom: `calc(${18 + (520 - player.y) / 7.2}% + 50px)`, "--fighter-color": FIGHTERS[player.id].color, "--fighter-trim": FIGHTERS[player.id].trim, "--sheet-x": `${frame * 100 / 7}%`, "--sheet-y": `${row * 50}%`, transform: `translateX(-50%) scaleX(${player.facing < 0 ? -1 : 1})` }} aria-label={FIGHTERS[player.id].name}>
     <div className="fighter-sprite" style={{ backgroundImage: `url(${fighterSheet})` }} />
   </div>;
 }

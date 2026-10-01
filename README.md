@@ -6,8 +6,8 @@ A browser arcade fighter inspired by the original *Street Fighter II: The World 
 
 ## Live Demo
 
-- [Play the latest public playtest (v0.0.7)](https://samuelasherrivello.github.io/babylon-lite-street-fighter-clone/)
-- [Release v0.0.7](https://github.com/SamuelAsherRivello/babylon-lite-street-fighter-clone/releases/tag/v0.0.7)
+- [Play the latest public playtest (v0.0.8)](https://samuelasherrivello.github.io/babylon-lite-street-fighter-clone/)
+- [Release v0.0.8](https://github.com/SamuelAsherRivello/babylon-lite-street-fighter-clone/releases/tag/v0.0.8)
 
 ## Table of Contents
 
@@ -81,7 +81,7 @@ Kaida is an original ember-comet martial artist with a counter-focused style. Sp
 
 ## Artwork and References
 
-All game artwork is original and generated for this project. The fighter sprite sheet includes Ryu, Chun-Li, and original character Kaida, with standing, moving, crouching, jumping, three distinct punches and three distinct kicks, hit, and block poses. The three original stages are Sunset Dojo, Harbor Market, and Snow Temple. Local players choose a stage before the match; online rooms derive one stable stage from the invite code so both clients display the same scene. No game ROM, extracted arcade/SNES sprites, official logos, music, or sound effects are included. Arcade music and impact sounds are synthesized live in the browser from an original short note pattern; use **Sound** and the volume slider to control them.
+All game artwork is original and generated for this project. The fighter sprite sheet includes Ryu, Chun-Li, and original character Kaida in eight base poses: standing, moving, crouching, jumping, punch, kick, hit, and block. Light, medium, and heavy punches and kicks use distinct strength-based motion profiles. The three original stages are Sunset Dojo, Harbor Market, and Snow Temple. Local players choose a stage before the match; online rooms derive one stable stage from the invite code so both clients display the same scene. No game ROM, extracted arcade/SNES sprites, official logos, music, or sound effects are included. Arcade music and impact sounds are synthesized live in the browser from an original short note pattern; use **Sound** and the volume slider to control them.
 
 ![Local match in Chrome at desktop size](street-fighter-ii/documentation/screenshots/local-match-desktop.png)
 
