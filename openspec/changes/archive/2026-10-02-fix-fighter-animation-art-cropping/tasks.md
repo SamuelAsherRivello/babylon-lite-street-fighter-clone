@@ -13,4 +13,4 @@
 ## 3. Verification and release
 
 - [x] 3.1 Run `npm test` and `npm run build` from the repository root; verify both pass.
-- [ ] 3.2 Inspect live gameplay at desktop and narrow viewport sizes for all three fighters, grounded foot alignment, facing, and every pose; publish the version and verify the deployed `version.txt` and public playtest.
+- [x] 3.2 Inspect live gameplay at desktop and narrow viewport sizes for all three fighters, grounded foot alignment, facing, and every pose; publish the version and verify the deployed `version.txt` and public playtest.
