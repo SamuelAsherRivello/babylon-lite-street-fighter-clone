@@ -1,0 +1,46 @@
+{
+  "frameSize": 512,
+  "groundBaselineY": 504,
+  "poses": [
+    "idle",
+    "walk",
+    "crouch",
+    "jump",
+    "punch",
+    "kick",
+    "hit",
+    "block"
+  ],
+  "fighters": {
+    "ryu": {
+      "idle": "fighter-poses/ryu-idle.png",
+      "walk": "fighter-poses/ryu-walk.png",
+      "crouch": "fighter-poses/ryu-crouch.png",
+      "jump": "fighter-poses/ryu-jump.png",
+      "punch": "fighter-poses/ryu-punch.png",
+      "kick": "fighter-poses/ryu-kick.png",
+      "hit": "fighter-poses/ryu-hit.png",
+      "block": "fighter-poses/ryu-block.png"
+    },
+    "chunLi": {
+      "idle": "fighter-poses/chunLi-idle.png",
+      "walk": "fighter-poses/chunLi-walk.png",
+      "crouch": "fighter-poses/chunLi-crouch.png",
+      "jump": "fighter-poses/chunLi-jump.png",
+      "punch": "fighter-poses/chunLi-punch.png",
+      "kick": "fighter-poses/chunLi-kick.png",
+      "hit": "fighter-poses/chunLi-hit.png",
+      "block": "fighter-poses/chunLi-block.png"
+    },
+    "kaida": {
+      "idle": "fighter-poses/kaida-idle.png",
+      "walk": "fighter-poses/kaida-walk.png",
+      "crouch": "fighter-poses/kaida-crouch.png",
+      "jump": "fighter-poses/kaida-jump.png",
+      "punch": "fighter-poses/kaida-punch.png",
+      "kick": "fighter-poses/kaida-kick.png",
+      "hit": "fighter-poses/kaida-hit.png",
+      "block": "fighter-poses/kaida-block.png"
+    }
+  }
+}

@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test --test-isolation=none street-fighter-ii/test/page.test.mjs street-fighter-ii/test/content.test.mjs street-fighter-ii/test/openspec-skills.test.mjs street-fighter-ii/test/combat.test.mjs street-fighter-ii/test/presentation.test.mjs"
+    "test": "node --test --test-isolation=none street-fighter-ii/test/page.test.mjs street-fighter-ii/test/content.test.mjs street-fighter-ii/test/openspec-skills.test.mjs street-fighter-ii/test/combat.test.mjs street-fighter-ii/test/presentation.test.mjs street-fighter-ii/test/fighter-art.test.mjs"
   },
   "dependencies": {
     "@babylonjs/lite": "1.32.0",
